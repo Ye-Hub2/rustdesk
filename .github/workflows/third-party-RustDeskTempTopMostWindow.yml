@@ -20,7 +20,7 @@ on:
             description: 'Platform'
             required: true
             type: string
-            default: 'x64'
+            default: 'amd64'
         target_version:
             description: 'TargetVersion'
             required: true
