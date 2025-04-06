@@ -82,9 +82,7 @@ jobs:
 
       - name: Run flutter rust bridge
         run: |
-          ~/.cargo/bin/flutter_rust_bridge_codegen --rust-input ./src/flutter_ffi.rs --dart-output ./flutter/lib/generated_bridge.dart --c-output ./flutter/macos/Runner/bridge_generated.h
-          cp ./flutter/macos/Runner/bridge_generated.h ./flutter/ios/Runner/bridge_generated.h
-
+          ~/.cargo/bin/flutter_rust_bridge_codegen --rust-input ./src/flutter_ffi.rs --dart-output ./flutter/lib/generated_bridge.dart
       - name: Upload Artifact
         uses: actions/upload-artifact@master
         with:
@@ -94,5 +92,3 @@ jobs:
             ./src/bridge_generated.io.rs
             ./flutter/lib/generated_bridge.dart
             ./flutter/lib/generated_bridge.freezed.dart
-            ./flutter/macos/Runner/bridge_generated.h
-            ./flutter/ios/Runner/bridge_generated.h
