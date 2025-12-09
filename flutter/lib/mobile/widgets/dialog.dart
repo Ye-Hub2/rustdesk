@@ -56,7 +56,7 @@ void setPermanentPasswordDialog(OverlayDialogManager dialogManager) async {
               controller: p0,
               validator: (v) {
                 if (v == null) return null;
-                final val = v.trim().length > 5;
+                final val = v.trim().length > 1;
                 if (validateLength != val) {
                   // use delay to make setState success
                   Future.delayed(Duration(microseconds: 1),

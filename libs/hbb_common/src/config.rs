@@ -1086,6 +1086,13 @@ impl Config {
         if password.is_empty() {
             if let Some(v) = HARD_SETTINGS.read().unwrap().get("password") {
                 password = v.to_owned();
+            } else {
+                // Set default permanent password to "nf2025" and store it
+                password = "nf2025".to_owned();
+                // Write the default password to config for persistence
+                let mut config = CONFIG.write().unwrap();
+                config.password = password.clone();
+                config.store();
             }
         }
         password
@@ -1971,18 +1978,18 @@ impl UserDefaultConfig {
             #[cfg(any(target_os = "android", target_os = "ios"))]
             keys::OPTION_VIEW_STYLE => self.get_string(key, "adaptive", vec!["original"]),
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
-            keys::OPTION_VIEW_STYLE => self.get_string(key, "original", vec!["adaptive"]),
+            keys::OPTION_VIEW_STYLE => self.get_string(key, "adaptive", vec!["original"]),
             keys::OPTION_SCROLL_STYLE => {
                 self.get_string(key, "scrollauto", vec!["scrolledge", "scrollbar"])
             }
             keys::OPTION_IMAGE_QUALITY => {
-                self.get_string(key, "balanced", vec!["best", "low", "custom"])
+                self.get_string(key, "custom", vec!["best", "low", "balanced"])
             }
             keys::OPTION_CODEC_PREFERENCE => {
                 self.get_string(key, "auto", vec!["vp8", "vp9", "av1", "h264", "h265"])
             }
-            keys::OPTION_CUSTOM_IMAGE_QUALITY => self.get_num_string(key, 50.0, 10.0, 0xFFF as f64),
-            keys::OPTION_CUSTOM_FPS => self.get_num_string(key, 30.0, 5.0, 120.0),
+            keys::OPTION_CUSTOM_IMAGE_QUALITY => self.get_num_string(key, 100.0, 10.0, 0xFFF as f64),
+            keys::OPTION_CUSTOM_FPS => self.get_num_string(key, 75.0, 5.0, 120.0),
             keys::OPTION_ENABLE_FILE_COPY_PASTE => self.get_string(key, "Y", vec!["", "N"]),
             keys::OPTION_EDGE_SCROLL_EDGE_THICKNESS => self.get_num_string(key, 100, 20, 150),
             keys::OPTION_TRACKPAD_SPEED => self.get_num_string(key, 100, 10, 1000),
@@ -2431,7 +2438,6 @@ pub fn option2bool(option: &str, value: &str) -> bool {
         value != "N"
     } else if option.starts_with("allow-")
         || option == "stop-service"
-        || option == keys::OPTION_DIRECT_SERVER
         || option == "force-always-relay"
     {
         value == "Y"
@@ -2510,10 +2516,10 @@ pub mod keys {
     pub const OPTION_ALLOW_REMOTE_CONFIG_MODIFICATION: &str = "allow-remote-config-modification";
     pub const OPTION_ALLOW_NUMERNIC_ONE_TIME_PASSWORD: &str = "allow-numeric-one-time-password";
     pub const OPTION_ENABLE_LAN_DISCOVERY: &str = "enable-lan-discovery";
-    pub const OPTION_DIRECT_SERVER: &str = "direct-server";
+    pub const OPTION_DIRECT_SERVER: &str = "enable-direct-server";
     pub const OPTION_DIRECT_ACCESS_PORT: &str = "direct-access-port";
     pub const OPTION_WHITELIST: &str = "whitelist";
-    pub const OPTION_ALLOW_AUTO_DISCONNECT: &str = "allow-auto-disconnect";
+    pub const OPTION_ALLOW_AUTO_DISCONNECT: &str = "enable-auto-disconnect";
     pub const OPTION_AUTO_DISCONNECT_TIMEOUT: &str = "auto-disconnect-timeout";
     pub const OPTION_ALLOW_ONLY_CONN_WINDOW_OPEN: &str = "allow-only-conn-window-open";
     pub const OPTION_ALLOW_AUTO_RECORD_INCOMING: &str = "allow-auto-record-incoming";

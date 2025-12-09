@@ -229,12 +229,18 @@ class ServerModel with ChangeNotifier {
   updatePasswordModel() async {
     var update = false;
     final temporaryPassword = await bind.mainGetTemporaryPassword();
-    final verificationMethod =
+    var verificationMethod = 
         await bind.mainGetOption(key: kOptionVerificationMethod);
-    final temporaryPasswordLength =
+    // Set default verification method if not set or invalid
+    final allowedMethods = [kUseTemporaryPassword, kUsePermanentPassword, kUseBothPasswords];
+    if (!allowedMethods.contains(verificationMethod)) {
+      verificationMethod = kUseBothPasswords;
+      await bind.mainSetOption(key: kOptionVerificationMethod, value: verificationMethod);
+    }
+    final temporaryPasswordLength = 
         await bind.mainGetOption(key: "temporary-password-length");
     final approveMode = await bind.mainGetOption(key: kOptionApproveMode);
-    final numericOneTimePassword =
+    final numericOneTimePassword = 
         await mainGetBoolOption(kOptionAllowNumericOneTimePassword);
     /*
     var hideCm = option2bool(

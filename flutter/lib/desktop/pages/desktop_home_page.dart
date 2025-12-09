@@ -909,11 +909,11 @@ void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
   var errMsg1 = "";
   final RxString rxPass = pw.trim().obs;
   final rules = [
-    DigitValidationRule(),
-    UppercaseValidationRule(),
-    LowercaseValidationRule(),
+    //DigitValidationRule(),
+    //UppercaseValidationRule(),
+    //LowercaseValidationRule(),
     // SpecialCharacterValidationRule(),
-    MinCharactersValidationRule(8),
+    //MinCharactersValidationRule(8),
   ];
   final maxLength = bind.mainMaxEncryptLen();
 
