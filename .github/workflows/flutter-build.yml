@@ -433,7 +433,7 @@ jobs:
             ./SignOutput/rustdesk-*.exe
 
   build-rustdesk-ios:
-    if: ${{ inputs.upload-artifact }}
+    if: false # Disabled - iOS build is skipped
     name: build rustdesk ios ipa
     runs-on: ${{ matrix.job.os }}
     needs: [generate-bridge]
@@ -553,6 +553,7 @@ jobs:
 
 
   build-for-macOS:
+    if: false # Disabled - macOS build is skipped
     name: ${{ matrix.job.target }}
     runs-on: ${{ matrix.job.os }}
     needs: [generate-bridge]
@@ -761,23 +762,23 @@ jobs:
 
   publish_unsigned:
     needs:
-      - build-for-macOS
+      # - build-for-macOS # Disabled - macOS build is skipped
       - build-for-windows-flutter
       - build-for-windows-sciter
     runs-on: ubuntu-latest
     if: ${{ inputs.upload-artifact }}
     steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@master
-        with:
-          name: rustdesk-unsigned-macos-x86_64
-          path: ./
+      # - name: Download artifacts # Disabled - macOS build is skipped
+      #   uses: actions/download-artifact@master
+      #   with:
+      #     name: rustdesk-unsigned-macos-x86_64
+      #     path: ./
 
-      - name: Download Artifacts
-        uses: actions/download-artifact@master
-        with:
-          name: rustdesk-unsigned-macos-aarch64
-          path: ./
+      # - name: Download Artifacts # Disabled - macOS build is skipped
+      #   uses: actions/download-artifact@master
+      #   with:
+      #     name: rustdesk-unsigned-macos-aarch64
+      #     path: ./
 
       - name: Download Artifacts
         uses: actions/download-artifact@master
@@ -793,7 +794,8 @@ jobs:
 
       - name: Combine unsigned app
         run: |
-          tar czf rustdesk-${{ env.VERSION }}-unsigned.tar.gz *.dmg windows-x86_64 windows-x86
+          # Removed macOS DMG files from the archive as macOS builds are disabled
+          tar czf rustdesk-${{ env.VERSION }}-unsigned.tar.gz windows-x86_64 windows-x86
 
       - name: Publish unsigned app
         uses: softprops/action-gh-release@v1
@@ -1279,6 +1281,7 @@ jobs:
             signed-apk/rustdesk-${{ env.VERSION }}-universal${{ env.suffix }}.apk
 
   build-rustdesk-linux:
+    if: false # Disabled - Linux build is skipped
     needs: [generate-bridge]
     name: build rustdesk linux ${{ matrix.job.target }}
     runs-on: ${{ matrix.job.on }}
@@ -1616,7 +1619,7 @@ jobs:
             res/rustdesk-${{ env.VERSION }}*.zst
 
   build-rustdesk-linux-sciter:
-    if: ${{ inputs.upload-artifact }}
+    if: false # Disabled - Linux sciter build is skipped
     runs-on: ${{ matrix.job.on }}
     name: build-rustdesk-linux-sciter ${{ matrix.job.target }}
     strategy:
@@ -1843,10 +1846,10 @@ jobs:
           path: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-sciter.deb
 
   build-appimage:
+    if: false # Disabled - AppImage build is skipped
     name: Build appimage ${{ matrix.job.target }}
     needs: [build-rustdesk-linux]
     runs-on: ubuntu-22.04
-    if: ${{ inputs.upload-artifact }}
     strategy:
       fail-fast: false
       matrix:
@@ -1893,12 +1896,12 @@ jobs:
             ./appimage/rustdesk-${{ env.VERSION }}-*.AppImage
 
   build-flatpak:
+    if: false # Disabled - Flatpak build is skipped
     name: Build flatpak ${{ matrix.job.target }}${{ matrix.job.suffix }}
     needs:
       - build-rustdesk-linux
       - build-rustdesk-linux-sciter
     runs-on: ${{ matrix.job.on }}
-    if: ${{ inputs.upload-artifact }}
     strategy:
       fail-fast: false
       matrix:
