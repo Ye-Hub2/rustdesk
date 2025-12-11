@@ -65,8 +65,8 @@ lazy_static::lazy_static! {
     pub static ref DEFAULT_SETTINGS: RwLock<HashMap<String, String>> = {
         let mut map = HashMap::new();
         map.insert(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(), "192.168.200.10".to_owned());
-        map.insert(keys::OPTION_API_SERVER.to_owned(), "http://192.168.200.10:21114".to_owned());
-        map.insert(keys::OPTION_RELAY_SERVER.to_owned(), "192.168.200.10:21117".to_owned());
+        map.insert(keys::OPTION_API_SERVER.to_owned(), "192.168.200.10".to_owned());
+        map.insert(keys::OPTION_RELAY_SERVER.to_owned(), "192.168.200.10".to_owned());
         map.insert(keys::OPTION_KEY.to_owned(), "kDzultMP7KTuo66E9JAOSEgS+D+59QeYnoXJj6MWzxc=".to_owned());
         RwLock::new(map)
     };
