@@ -920,11 +920,11 @@ void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
   var canSubmit = false;
   final RxString rxPass = "".obs;
   final rules = [
-    DigitValidationRule(),
-    UppercaseValidationRule(),
-    LowercaseValidationRule(),
-    // SpecialCharacterValidationRule(),
-    MinCharactersValidationRule(8),
+    // DigitValidationRule(),               // 必须含数字
+    // UppercaseValidationRule(),           // 必须含大写字母
+    // LowercaseValidationRule(),           // 必须含小写字母
+    // SpecialCharacterValidationRule(),    // 特殊字符
+    MinCharactersValidationRule(6),         // 最少6位
   ];
   final maxLength = bind.mainMaxEncryptLen();
   final statusTip = localPasswordSet
