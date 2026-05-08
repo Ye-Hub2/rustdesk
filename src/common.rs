@@ -1041,7 +1041,10 @@ pub fn get_custom_rendezvous_server(custom: String) -> String {
     if !config::PROD_RENDEZVOUS_SERVER.read().unwrap().is_empty() {
         return config::PROD_RENDEZVOUS_SERVER.read().unwrap().clone();
     }
-    "".to_owned()
+    config::RENDEZVOUS_SERVERS
+        .first()
+        .map(|s| s.to_string())
+        .unwrap_or_default()
 }
 
 #[inline]
