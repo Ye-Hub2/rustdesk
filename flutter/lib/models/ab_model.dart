@@ -86,7 +86,6 @@ class AbModel {
     if (desktopType == DesktopType.main) {
       Timer.periodic(Duration(milliseconds: 500), (timer) async {
         if (_timerCounter++ % 6 == 0) {
-          if (!gFFI.userModel.isLogin) return;
           if (!listInitialized) return;
           if (!current.initialized || !current.canWrite()) return;
           _syncFromRecent();
@@ -116,13 +115,14 @@ class AbModel {
   /// If `force` is `ForcePullAb.listAndCurrent`, the function will pull the list of address books, current address book, and try initialize personal address book.
   /// If `force` is `ForcePullAb.current`, the function will only pull the current address book.
   /// If `quiet` is true, the function will not display any notifications or errors.
+  // ignore: unused_field
   var _pulling = false;
   Future<void> pullAb(
       {required ForcePullAb? force, required bool quiet}) async {
     if (bind.isDisableAb()) return;
-    if (!gFFI.userModel.isLogin) return;
-    if (gFFI.userModel.networkError.isNotEmpty) return;
-    if (_pulling) return;
+    // Account support was removed; the server-side address book is unreachable.
+    return;
+    // ignore: dead_code
     if (force == null && _pulledOnce) {
       return;
     }
@@ -159,7 +159,7 @@ class AbModel {
           debugPrint("pull ab list");
           List<AbProfile> abProfiles = List.empty(growable: true);
           abProfiles.add(AbProfile(_personalAbGuid!, _personalAddressBookName,
-              gFFI.userModel.userName.value, null, ShareRule.read.value, null));
+              '', null, ShareRule.read.value, null));
           // get all address book name
           await _getSharedAbProfiles(abProfiles, quiet: quiet);
           addressbooks.removeWhere((key, value) =>
@@ -222,12 +222,10 @@ class AbModel {
       _listPullError.value =
           '${translate('pull_ab_failed_tip')}: ${translate(err.toString())}';
     }
-    if (statusCode == 401) {
-      gFFI.userModel.reset(resetOther: true);
-    }
   }
 
   Future<bool> _getAbSettings({required bool quiet}) async {
+    // ignore: unused_local_variable
     int? statusCode;
     try {
       final api = "${await bind.mainGetApiServer()}/api/ab/settings";
@@ -260,6 +258,7 @@ class AbModel {
   /// Loads `/api/ab/personal`.
   /// Returns `true` to continue init, `false` to stop after a real error.
   Future<bool> _getPersonalAbGuid({required bool quiet}) async {
+    // ignore: unused_local_variable
     int? statusCode;
     try {
       final api = "${await bind.mainGetApiServer()}/api/ab/personal";
@@ -295,6 +294,7 @@ class AbModel {
   Future<bool> _getSharedAbProfiles(List<AbProfile> profiles,
       {required bool quiet}) async {
     final api = "${await bind.mainGetApiServer()}/api/ab/shared/profiles";
+    // ignore: unused_local_variable
     int? statusCode;
     try {
       var uri0 = Uri.parse(api);
@@ -1008,6 +1008,7 @@ class LegacyAb extends BaseAb {
   Future<bool> pullAbImpl({quiet = false}) async {
     bool ret = false;
     final api = "${await bind.mainGetApiServer()}/api/ab";
+    // ignore: unused_local_variable
     int? statusCode;
     try {
       var authHeaders = getHttpHeaders();
@@ -1044,9 +1045,6 @@ class LegacyAb extends BaseAb {
       }
     } finally {
       if (pullError.isNotEmpty) {
-        if (statusCode == 401) {
-          gFFI.userModel.reset(resetOther: true);
-        }
       }
     }
     return ret;
@@ -1055,7 +1053,9 @@ class LegacyAb extends BaseAb {
   Future<bool> pushAb(
       {bool toastIfFail = true, bool toastIfSucc = true}) async {
     debugPrint("pushAb: toastIfFail:$toastIfFail, toastIfSucc:$toastIfSucc");
-    if (!gFFI.userModel.isLogin) return false;
+    // Account support was removed; the server-side address book is unreachable.
+    return false;
+    // ignore: dead_code
     pushError.value = '';
     bool ret = false;
     try {
@@ -1431,6 +1431,7 @@ class Ab extends BaseAb {
 
   Future<bool> _fetchPeers(List<Peer> tmpPeers, {quiet = false}) async {
     final api = "${await bind.mainGetApiServer()}/api/ab/peers";
+    // ignore: unused_local_variable
     int? statusCode;
     try {
       var uri0 = Uri.parse(api);
@@ -1488,9 +1489,6 @@ class Ab extends BaseAb {
       }
     } finally {
       if (pullError.isNotEmpty) {
-        if (statusCode == 401) {
-          gFFI.userModel.reset(resetOther: true);
-        }
       }
     }
     return false;
@@ -1498,6 +1496,7 @@ class Ab extends BaseAb {
 
   Future<bool> _fetchTags(List<AbTag> tmpTags, {quiet = false}) async {
     final api = "${await bind.mainGetApiServer()}/api/ab/tags/${profile.guid}";
+    // ignore: unused_local_variable
     int? statusCode;
     try {
       var uri0 = Uri.parse(api);
@@ -1535,9 +1534,6 @@ class Ab extends BaseAb {
       }
     } finally {
       if (pullError.isNotEmpty) {
-        if (statusCode == 401) {
-          gFFI.userModel.reset(resetOther: true);
-        }
       }
     }
     return false;

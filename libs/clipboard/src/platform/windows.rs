@@ -742,6 +742,7 @@ pub fn server_clip_file(
             stream_id,
             requested_data,
         } => {
+            log_clip_file_rate("clip-resp", requested_data.len() as u64, clip_req_rtt(stream_id));
             log::debug!("server_file_contents_response called");
             ret = server_file_contents_response(
                 context,
@@ -906,6 +907,56 @@ pub fn server_format_data_response(
             ERR_CODE_SERVER_FUNCTION_NONE
         }
     }
+}
+
+/// Diagnostic for the clipboard file copy path: one line per second with the rate,
+/// the average request size and the average round trip time, so a slow copy can be
+/// told apart from a small-chunk copy and from a high-latency one.
+fn log_clip_file_rate(tag: &str, bytes: u64, rtt_ms: f64) {
+    use std::sync::{Mutex, OnceLock};
+    use std::time::{Duration, Instant};
+    static S: OnceLock<Mutex<(Instant, u64, u64, f64, f64)>> = OnceLock::new();
+    let m = S.get_or_init(|| Mutex::new((Instant::now(), 0, 0, 0.0, 0.0)));
+    let Ok(mut g) = m.lock() else { return };
+    g.1 += 1;
+    g.2 += bytes;
+    if rtt_ms > 0.0 {
+        g.3 += rtt_ms;
+        g.4 += 1.0;
+    }
+    let elapsed = g.0.elapsed();
+    if elapsed >= Duration::from_secs(1) {
+        log::info!(
+            "xfer[{}] {:.1} MB/s, {:.0}/s, avg {:.0} KB, avg RTT {:.1} ms",
+            tag,
+            g.2 as f64 / 1048576.0 / elapsed.as_secs_f64(),
+            g.1 as f64 / elapsed.as_secs_f64(),
+            (g.2 as f64 / g.1.max(1) as f64) / 1024.0,
+            if g.4 > 0.0 { g.3 / g.4 } else { 0.0 }
+        );
+        *g = (Instant::now(), 0, 0, 0.0, 0.0);
+    }
+}
+
+fn clip_req_mark(stream_id: i32) {
+    use std::{collections::HashMap, sync::{Mutex, OnceLock}, time::Instant};
+    static REQ_AT: OnceLock<Mutex<HashMap<i32, Instant>>> = OnceLock::new();
+    let m = REQ_AT.get_or_init(|| Mutex::new(HashMap::new()));
+    if let Ok(mut g) = m.lock() {
+        g.insert(stream_id, Instant::now());
+    }
+}
+
+fn clip_req_rtt(stream_id: i32) -> f64 {
+    use std::{collections::HashMap, sync::{Mutex, OnceLock}, time::Instant};
+    static REQ_AT: OnceLock<Mutex<HashMap<i32, Instant>>> = OnceLock::new();
+    let m = REQ_AT.get_or_init(|| Mutex::new(HashMap::new()));
+    if let Ok(mut g) = m.lock() {
+        if let Some(t) = g.remove(&stream_id) {
+            return t.elapsed().as_secs_f64() * 1000.0;
+        }
+    }
+    0.0
 }
 
 pub fn server_file_contents_request(
@@ -1277,6 +1328,8 @@ extern "C" fn client_file_contents_request(
         clip_data_id,
     };
     log::debug!("client_file_contents_request called, data: {:?}", &data);
+    log_clip_file_rate("clip-req", cb_requested.max(0) as u64, 0.0);
+    clip_req_mark(stream_id);
     match send_data(conn_id, data) {
         Ok(_) => 0,
         Err(e) => {

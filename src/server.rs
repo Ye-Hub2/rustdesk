@@ -177,85 +177,7 @@ pub fn new() -> ServerPtr {
     Arc::new(RwLock::new(server))
 }
 
-async fn accept_connection_(
-    server: ServerPtr,
-    socket: Stream,
-    secure: bool,
-    meta: ConnectionMeta,
-    slot: crate::rendezvous_mediator::PunchSlot,
-) -> ResultType<()> {
-    let local_addr = socket.local_addr();
-    drop(socket);
-    // even we drop socket, below still may fail if not use reuse_addr,
-    // there is TIME_WAIT before socket really released, so sometimes we
-    // see "Only one usage of each socket address is normally permitted" on windows sometimes,
-    let listener = new_listener(local_addr, true).await?;
-    log::info!("Server listening on: {}", &listener.local_addr()?);
-    if let Ok((stream, addr)) = timeout(CONNECT_TIMEOUT, listener.accept()).await? {
-        // The peer is in: the place goes back before the session runs, as every punch's does.
-        drop(slot);
-        stream.set_nodelay(true).ok();
-        let stream_addr = stream.local_addr()?;
-        create_tcp_connection(
-            server,
-            Stream::from(stream, stream_addr),
-            addr,
-            secure,
-            meta,
-        )
-        .await?;
-    }
-    Ok(())
-}
 
-pub async fn create_tcp_connection(
-    server: ServerPtr,
-    stream: Stream,
-    addr: SocketAddr,
-    secure: bool,
-    meta: ConnectionMeta,
-) -> ResultType<()> {
-    let mut stream = stream;
-    // The address the connection layer keys on, whitelist and admission alike.
-    let addr = hbb_common::try_into_v4(addr);
-    let id = server.write().unwrap().get_new_id();
-    // Admitted before the identity handshake, so a peer that stalls in it, or after it without
-    // logging in, holds its place the whole time; an address over its share is turned away.
-    let Some(unauthorized) = admit_unauthorized(id, addr.ip()) else {
-        bail!("too many unauthenticated connections from {}", addr.ip());
-    };
-    // Before the handshake, so its read is bounded too; lifted again at authorization.
-    stream.set_max_packet_length(MAX_UNAUTHORIZED_MESSAGE);
-    tokio::select! {
-        handshake = identity_handshake(&mut stream, secure) => handshake?,
-        _ = unauthorized.evicted() => {
-            bail!("evicted to make room for a newer unauthenticated connection");
-        }
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        use std::process::Command;
-        if let Ok(task) = Command::new("/usr/bin/caffeinate")
-            .arg("-u")
-            .arg("-t 5")
-            .spawn()
-        {
-            super::CHILD_PROCESS.lock().unwrap().push(task);
-        }
-        log::info!("wake up macos");
-    }
-    Connection::start(
-        addr,
-        stream,
-        id,
-        Arc::downgrade(&server),
-        meta,
-        unauthorized,
-    )
-    .await;
-    Ok(())
-}
 
 /// Our signed identity goes out and, when `secure`, the controller's reply keys `stream`.
 /// Separate so it can be raced against the connection's eviction.
@@ -351,71 +273,52 @@ async fn identity_handshake(stream: &mut Stream, secure: bool) -> ResultType<()>
     Ok(())
 }
 
-pub(crate) async fn accept_connection(
+pub async fn create_tcp_connection(
     server: ServerPtr,
-    socket: Stream,
-    peer_addr: SocketAddr,
+    stream: Stream,
+    addr: SocketAddr,
     secure: bool,
-    meta: ConnectionMeta,
-    slot: crate::rendezvous_mediator::PunchSlot,
-) {
-    if let Err(err) = accept_connection_(server, socket, secure, meta, slot).await {
-        log::warn!("Failed to accept connection from {}: {}", peer_addr, err);
-    }
-}
-
-pub async fn create_relay_connection(
-    server: ServerPtr,
-    relay_server: String,
-    uuid: String,
-    peer_addr: SocketAddr,
-    secure: bool,
-    ipv4: bool,
-    meta: ConnectionMeta,
-) {
-    if let Err(err) = create_relay_connection_(
-        server,
-        relay_server,
-        uuid.clone(),
-        peer_addr,
-        secure,
-        ipv4,
-        meta,
-    )
-    .await
-    {
-        log::error!(
-            "Failed to create relay connection for {} with uuid {}: {}",
-            peer_addr,
-            uuid,
-            err
-        );
-    }
-}
-
-async fn create_relay_connection_(
-    server: ServerPtr,
-    relay_server: String,
-    uuid: String,
-    peer_addr: SocketAddr,
-    secure: bool,
-    ipv4: bool,
     meta: ConnectionMeta,
 ) -> ResultType<()> {
-    let mut stream = socket_client::connect_tcp(
-        socket_client::ipv4_to_ipv6(crate::check_port(relay_server, RELAY_PORT), ipv4),
-        CONNECT_TIMEOUT,
+    let mut stream = stream;
+    // The address the connection layer keys on, whitelist and admission alike.
+    let addr = hbb_common::try_into_v4(addr);
+    let id = server.write().unwrap().get_new_id();
+    // Admitted before the identity handshake, so a peer that stalls in it, or after it without
+    // logging in, holds its place the whole time; an address over its share is turned away.
+    let Some(unauthorized) = admit_unauthorized(id, addr.ip()) else {
+        bail!("too many unauthenticated connections from {}", addr.ip());
+    };
+    // Before the handshake, so its read is bounded too; lifted again at authorization.
+    stream.set_max_packet_length(MAX_UNAUTHORIZED_MESSAGE);
+    tokio::select! {
+        handshake = identity_handshake(&mut stream, secure) => handshake?,
+        _ = unauthorized.evicted() => {
+            bail!("evicted to make room for a newer unauthenticated connection");
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        use std::process::Command;
+        if let Ok(task) = Command::new("/usr/bin/caffeinate")
+            .arg("-u")
+            .arg("-t 5")
+            .spawn()
+        {
+            super::CHILD_PROCESS.lock().unwrap().push(task);
+        }
+        log::info!("wake up macos");
+    }
+    Connection::start(
+        addr,
+        stream,
+        id,
+        Arc::downgrade(&server),
+        meta,
+        unauthorized,
     )
-    .await?;
-    let mut msg_out = RendezvousMessage::new();
-    let licence_key = crate::get_key(true).await;
-    msg_out.set_request_relay(RequestRelay {
-        licence_key,
-        uuid,
-        ..Default::default()
-    });
-    stream.send(&msg_out).await?;
-    create_tcp_connection(server, stream, peer_addr, secure, meta).await?;
+    .await;
     Ok(())
 }
 
@@ -643,7 +546,7 @@ pub fn check_zombie() {
 #[cfg(any(target_os = "android", target_os = "ios"))]
 #[tokio::main]
 pub async fn start_server(_is_server: bool) {
-    crate::RendezvousMediator::start_all().await;
+    crate::direct_server::start_all().await;
 }
 
 /// Start the host server that allows the remote peer to control the current machine.
@@ -711,7 +614,7 @@ pub async fn start_server(is_server: bool, no_server: bool) {
         crate::platform::try_kill_broker();
         #[cfg(feature = "hwcodec")]
         scrap::hwcodec::start_check_process();
-        crate::RendezvousMediator::start_all().await;
+        crate::direct_server::start_all().await;
     } else {
         match crate::ipc::connect(1000, "").await {
             Ok(mut conn) => {

@@ -287,6 +287,11 @@ impl Encoder {
             if vp8_useable && system.total_memory() <= 4 * 1024 * 1024 * 1024 {
                 // 4 Gb
                 auto_codec = CodecFormat::VP8
+            } else if auto_codec == CodecFormat::AV1 && num_cpus::get() <= 4 {
+                // AV1 software encoding needs several cores; on a small machine it
+                // saturates the CPU and starves whatever else runs beside the
+                // session, a file transfer in particular. VP9 costs far less.
+                auto_codec = CodecFormat::VP9
             }
         }
 

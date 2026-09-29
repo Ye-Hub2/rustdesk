@@ -1,7 +1,5 @@
 use crate::{
-    config::{
-        keys::OPTION_RELAY_SERVER, use_ws, Config, Socks5Server, RELAY_PORT, RENDEZVOUS_PORT,
-    },
+    config::{keys::OPTION_RELAY_SERVER, use_ws, Config, RELAY_PORT, RENDEZVOUS_PORT},
     protobuf::Message,
     socket_client::split_host_port,
     sodiumoxide::crypto::secretbox::Key,
@@ -190,7 +188,6 @@ impl WsFramedStream {
     pub async fn new<T: AsRef<str>>(
         url: T,
         _local_addr: Option<SocketAddr>,
-        _proxy_conf: Option<&Socks5Server>,
         ms_timeout: u64,
     ) -> ResultType<Self> {
         let stream = Self::connect(url.as_ref(), ms_timeout).await?;

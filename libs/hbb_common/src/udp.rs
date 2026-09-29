@@ -6,12 +6,11 @@ use protobuf::Message;
 use socket2::{Domain, Socket, Type};
 use std::net::SocketAddr;
 use tokio::net::{lookup_host, ToSocketAddrs, UdpSocket};
-use tokio_socks::{udp::Socks5UdpFramed, IntoTargetAddr, TargetAddr, ToProxyAddrs};
+use tokio_socks::{IntoTargetAddr, TargetAddr};
 use tokio_util::{codec::BytesCodec, udp::UdpFramed};
 
 pub enum FramedSocket {
     Direct(UdpFramed<BytesCodec>),
-    ProxySocks(Socks5UdpFramed),
 }
 
 fn new_socket(addr: SocketAddr, reuse: bool, buf_size: usize) -> Result<Socket, std::io::Error> {
@@ -65,30 +64,6 @@ impl FramedSocket {
         )))
     }
 
-    pub async fn new_proxy<'a, 't, P: ToProxyAddrs, T: ToSocketAddrs>(
-        proxy: P,
-        local: T,
-        username: &'a str,
-        password: &'a str,
-        ms_timeout: u64,
-    ) -> ResultType<Self> {
-        let framed = if username.trim().is_empty() {
-            super::timeout(ms_timeout, Socks5UdpFramed::connect(proxy, Some(local))).await??
-        } else {
-            super::timeout(
-                ms_timeout,
-                Socks5UdpFramed::connect_with_password(proxy, Some(local), username, password),
-            )
-            .await??
-        };
-        log::trace!(
-            "Socks5 udp connected, local addr: {:?}, target addr: {}",
-            framed.local_addr(),
-            framed.socks_addr()
-        );
-        Ok(Self::ProxySocks(framed))
-    }
-
     #[inline]
     pub async fn send(
         &mut self,
@@ -103,7 +78,6 @@ impl FramedSocket {
                     f.send((send_data, addr)).await?
                 }
             }
-            Self::ProxySocks(f) => f.send((send_data, addr)).await?,
         };
         Ok(())
     }
@@ -123,7 +97,6 @@ impl FramedSocket {
                     f.send((Bytes::from(msg), addr)).await?
                 }
             }
-            Self::ProxySocks(f) => f.send((Bytes::from(msg), addr)).await?,
         };
         Ok(())
     }
@@ -135,11 +108,6 @@ impl FramedSocket {
                 Some(Ok((data, addr))) => {
                     Some(Ok((data, addr.into_target_addr().ok()?.to_owned())))
                 }
-                Some(Err(e)) => Some(Err(anyhow!(e))),
-                None => None,
-            },
-            Self::ProxySocks(f) => match f.next().await {
-                Some(Ok((data, _))) => Some(Ok((data.data, data.dst_addr))),
                 Some(Err(e)) => Some(Err(anyhow!(e))),
                 None => None,
             },
@@ -161,11 +129,7 @@ impl FramedSocket {
     }
 
     pub fn local_addr(&self) -> Option<SocketAddr> {
-        if let FramedSocket::Direct(x) = self {
-            if let Ok(v) = x.get_ref().local_addr() {
-                return Some(v);
-            }
-        }
-        None
+        let FramedSocket::Direct(x) = self;
+        x.get_ref().local_addr().ok()
     }
 }

@@ -191,7 +191,7 @@ impl<T: InvokeUiSession> Remote<T> {
         )
         .await
         {
-            Ok(((mut peer, direct, pk, kcp, stream_type), (feedback, rendezvous_server))) => {
+            Ok(((mut peer, direct, pk, kcp, stream_type), _)) => {
                 self.handler
                     .connection_round_state
                     .lock()
@@ -255,7 +255,6 @@ impl<T: InvokeUiSession> Remote<T> {
                     crate::rustdesk_interval(time::interval(Duration::new(1, 0)));
                 let mut fps_instant = Instant::now();
 
-                let _keep_it = client::hc_connection(feedback, rendezvous_server, token).await;
                 let mut last_recv_time = Instant::now();
                 let mut webrtc_suspect_since: Option<Instant> = None;
                 let mut last_rx_progress = peer.rx_progress();
@@ -1107,7 +1106,11 @@ impl<T: InvokeUiSession> Remote<T> {
         if elapsed <= 0 {
             return;
         }
-        let transferred = job.transferred();
+        // Count file bytes, not wire bytes: a compressible file moves several times
+        // more data per second than its compressed payload, and the progress bar
+        // below already counts file bytes. Reporting transferred() here made a
+        // fast transfer of a compressible file look like a slow one.
+        let transferred = job.finished_size();
         let last_transferred = {
             if let Some(v) = last_update_jobs_status.1.get(&job.id()) {
                 v.to_owned()

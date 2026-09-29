@@ -174,7 +174,7 @@ async fn connect_and_login(
     } else {
         ConnType::PORT_FORWARD
     };
-    let ((mut stream, direct, _pk, _kcp, _stream_type), (feedback, rendezvous_server)) =
+    let ((mut stream, direct, _pk, _kcp, _stream_type), _) =
         Client::start(id, key, token, conn_type, interface.clone()).await?;
     interface.update_direct(Some(direct));
     if !stream.is_secured() && !crate::common::is_direct_ip_access(id) {
@@ -187,8 +187,6 @@ async fn connect_and_login(
     let mut received = false;
     let mut challenge = None;
     let mut pending_login = None;
-
-    let _keep_it = hc_connection(feedback, rendezvous_server, token).await;
 
     loop {
         tokio::select! {
@@ -415,7 +413,7 @@ async fn connect_and_login_mux(
     } else {
         ConnType::PORT_FORWARD
     };
-    let ((mut stream, direct, _pk, _kcp, _stream_type), (feedback, rendezvous_server)) =
+    let ((mut stream, direct, _pk, _kcp, _stream_type), _) =
         Client::start(id, key, token, conn_type, interface.clone()).await?;
     interface.update_direct(Some(direct));
     if !stream.is_secured() && !crate::common::is_direct_ip_access(id) {
@@ -430,8 +428,6 @@ async fn connect_and_login_mux(
     let mut received = false;
     let mut challenge = None;
     let mut pending_login = None;
-
-    let _keep_it = hc_connection(feedback, rendezvous_server, token).await;
 
     loop {
         tokio::select! {

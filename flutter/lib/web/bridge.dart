@@ -786,21 +786,9 @@ class RustdeskImpl {
   }
 
   Future<String> mainTestIfValidServer(
-      {required String server, required bool testWithProxy, dynamic hint}) {
+      {required String server, dynamic hint}) {
     // TODO: implement
     return Future.value('');
-  }
-
-  Future<void> mainSetSocks(
-      {required String proxy,
-      required String username,
-      required String password,
-      dynamic hint}) {
-    throw UnimplementedError("mainSetSocks");
-  }
-
-  Future<List<String>> mainGetSocks({dynamic hint}) {
-    throw UnimplementedError("mainGetSocks");
   }
 
   Future<String> mainGetAppName({dynamic hint}) {
@@ -880,10 +868,6 @@ class RustdeskImpl {
       required String header,
       dynamic hint}) {
     throw UnimplementedError("mainPostRequest");
-  }
-
-  Future<bool> mainGetProxyStatus({dynamic hint}) {
-    return Future(() => false);
   }
 
   Future<void> mainHttpRequest({
@@ -1141,10 +1125,6 @@ class RustdeskImpl {
 
   Future<String> mainGetLastRemoteId({dynamic hint}) {
     return Future(() => mainGetLocalOption(key: 'last_remote_id'));
-  }
-
-  Future<void> mainGetSoftwareUpdateUrl({dynamic hint}) {
-    throw UnimplementedError("mainGetSoftwareUpdateUrl");
   }
 
   Future<String> mainGetHomeDir({dynamic hint}) {
@@ -1511,10 +1491,6 @@ class RustdeskImpl {
     throw UnimplementedError("mainGotoInstall");
   }
 
-  String mainGetNewVersion({dynamic hint}) {
-    throw UnimplementedError("mainGetNewVersion");
-  }
-
   bool mainUpdateMe({dynamic hint}) {
     throw UnimplementedError("mainUpdateMe");
   }
@@ -1538,27 +1514,6 @@ class RustdeskImpl {
 
   String installInstallPath({dynamic hint}) {
     throw UnimplementedError("installInstallPath");
-  }
-
-  Future<void> mainAccountAuth(
-      {required String op, required bool rememberMe, dynamic hint}) {
-    // Safari only allows auth popups while handling the original user gesture.
-    // Use Future.sync so the JS call runs synchronously (pre-opening the OIDC
-    // window) while any interop error still surfaces as a Future error.
-    return Future.sync(() => js.context.callMethod('setByName', [
-          'account_auth',
-          jsonEncode({'op': op, 'remember': rememberMe})
-        ]));
-  }
-
-  Future<void> mainAccountAuthCancel({dynamic hint}) {
-    return Future(
-        () => js.context.callMethod('setByName', ['account_auth_cancel']));
-  }
-
-  Future<String> mainAccountAuthResult({dynamic hint}) {
-    return Future(
-        () => js.context.callMethod('getByName', ['account_auth_result']));
   }
 
   Future<void> mainOnMainWindowClose({dynamic hint}) {
@@ -1629,11 +1584,6 @@ class RustdeskImpl {
   bool isDisableGroupPanel({dynamic hint}) {
     // Checks LocalConfig::get_option("disable-group-panel") == "Y"
     return mainGetLocalOption(key: "disable-group-panel", hint: hint) == "Y";
-  }
-
-  bool isDisableAccount({dynamic hint}) {
-    // Checks HARD_SETTINGS["disable-account"] == "Y"
-    return mainGetHardOption(key: "disable-account", hint: hint) == "Y";
   }
 
   bool isDisableInstallation({dynamic hint}) {

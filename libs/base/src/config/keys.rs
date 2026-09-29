@@ -29,8 +29,6 @@ pub const OPTION_TEXTURE_RENDER: &str = "use-texture-render";
 // "failed-*" flips the texture-render default to opt-in on this machine.
 pub const OPTION_TEXTURE_RENDER_HEALTH: &str = "texture-render-health";
 pub const OPTION_ALLOW_D3D_RENDER: &str = "allow-d3d-render";
-pub const OPTION_ENABLE_CHECK_UPDATE: &str = "enable-check-update";
-pub const OPTION_ALLOW_AUTO_UPDATE: &str = "allow-auto-update";
 pub const OPTION_SYNC_AB_WITH_RECENT_SESSIONS: &str = "sync-ab-with-recent-sessions";
 pub const OPTION_SYNC_AB_TAGS: &str = "sync-ab-tags";
 pub const OPTION_FILTER_AB_BY_INTERSECTION: &str = "filter-ab-by-intersection";
@@ -118,7 +116,6 @@ pub const OPTION_HIDE_GENERAL_SETTINGS: &str = "hide-general-settings";
 pub const OPTION_HIDE_SECURITY_SETTINGS: &str = "hide-security-settings";
 pub const OPTION_HIDE_NETWORK_SETTINGS: &str = "hide-network-settings";
 pub const OPTION_HIDE_SERVER_SETTINGS: &str = "hide-server-settings";
-pub const OPTION_HIDE_PROXY_SETTINGS: &str = "hide-proxy-settings";
 pub const OPTION_HIDE_REMOTE_PRINTER_SETTINGS: &str = "hide-remote-printer-settings";
 pub const OPTION_HIDE_WEBSOCKET_SETTINGS: &str = "hide-websocket-settings";
 pub const OPTION_HIDE_STOP_SERVICE: &str = "hide-stop-service";
@@ -249,7 +246,6 @@ pub const KEYS_LOCAL_SETTINGS: &[&str] = &[
     OPTION_PRE_ELEVATE_SERVICE,
     OPTION_ALLOW_REMOTE_CM_MODIFICATION,
     OPTION_ALLOW_SYNC_CLIPBOARD_BETWEEN_SESSIONS,
-    OPTION_ENABLE_CHECK_UPDATE,
     OPTION_PRINTER_INCOMING_JOB_ACTION,
     OPTION_PRINTER_ALLOW_AUTO_PRINT,
     OPTION_PRINTER_SELECTED_NAME,
@@ -304,9 +300,6 @@ pub const KEYS_SETTINGS: &[&str] = &[
     OPTION_APPROVE_MODE,
     OPTION_VERIFICATION_METHOD,
     OPTION_TEMPORARY_PASSWORD_LENGTH,
-    OPTION_PROXY_URL,
-    OPTION_PROXY_USERNAME,
-    OPTION_PROXY_PASSWORD,
     OPTION_CUSTOM_RENDEZVOUS_SERVER,
     OPTION_API_SERVER,
     OPTION_KEY,
@@ -327,7 +320,6 @@ pub const KEYS_SETTINGS: &[&str] = &[
     OPTION_DISABLE_UDP,
     OPTION_ALLOW_INSECURE_TLS_FALLBACK,
     OPTION_KEEP_AWAKE_DURING_INCOMING_SESSIONS,
-    OPTION_ALLOW_AUTO_UPDATE,
     OPTION_ALLOW_KCP_CC,
     OPTION_ALLOW_WEBRTC_CC,
 ];
@@ -344,7 +336,6 @@ pub const KEYS_BUILDIN_SETTINGS: &[&str] = &[
     OPTION_HIDE_SECURITY_SETTINGS,
     OPTION_HIDE_NETWORK_SETTINGS,
     OPTION_HIDE_SERVER_SETTINGS,
-    OPTION_HIDE_PROXY_SETTINGS,
     OPTION_HIDE_REMOTE_PRINTER_SETTINGS,
     OPTION_HIDE_WEBSOCKET_SETTINGS,
     OPTION_HIDE_STOP_SERVICE,

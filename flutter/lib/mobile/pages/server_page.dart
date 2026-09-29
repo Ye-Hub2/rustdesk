@@ -248,9 +248,8 @@ class ServiceNotRunningNotification extends StatelessWidget {
             ElevatedButton.icon(
                 icon: const Icon(Icons.play_arrow),
                 onPressed: () {
-                  if (gFFI.userModel.userName.value.isEmpty &&
-                      bind.mainGetLocalOption(key: "show-scam-warning") !=
-                          "N") {
+                  if (bind.mainGetLocalOption(key: "show-scam-warning") !=
+                      "N") {
                     showScamWarning(context, serverModel);
                   } else {
                     serverModel.toggleService();
@@ -605,7 +604,6 @@ class _PermissionCheckerState extends State<PermissionChecker> {
                 translate("Screen Capture"),
                 serverModel.mediaOk,
                 !serverModel.mediaOk &&
-                        gFFI.userModel.userName.value.isEmpty &&
                         bind.mainGetLocalOption(key: "show-scam-warning") != "N"
                     ? () => showScamWarning(context, serverModel)
                     : serverModel.toggleService),

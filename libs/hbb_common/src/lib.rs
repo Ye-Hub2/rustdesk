@@ -15,7 +15,6 @@ use std::{
 };
 pub use tokio;
 pub use tokio_util;
-pub mod proxy;
 pub mod socket_client;
 pub mod tcp;
 pub mod udp;
@@ -504,30 +503,7 @@ pub struct VersionCheckResponse {
     pub url: String,
 }
 
-pub const VER_TYPE_RUSTDESK_CLIENT: &str = "rustdesk-client";
 pub const VER_TYPE_RUSTDESK_SERVER: &str = "rustdesk-server";
-
-pub fn version_check_request(typ: String) -> (VersionCheckRequest, String) {
-    const URL: &str = "https://api.rustdesk.com/version/latest";
-
-    use sysinfo::System;
-    let system = System::new();
-    let os = system.distribution_id();
-    let os_version = system.os_version().unwrap_or_default();
-    let arch = std::env::consts::ARCH.to_string();
-    #[allow(deprecated)]
-    let device_id = fingerprint::get_fingerprint(None, None);
-    (
-        VersionCheckRequest {
-            os,
-            os_version,
-            arch,
-            device_id,
-            typ,
-        },
-        URL.to_string(),
-    )
-}
 
 pub fn time_based_rand() -> u32 {
     let nanos = std::time::SystemTime::now()

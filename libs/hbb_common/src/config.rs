@@ -197,12 +197,6 @@ macro_rules! serde_field_bool {
     };
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum NetworkType {
-    Direct,
-    ProxySocks,
-}
-
 #[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Config {
     #[serde(
@@ -225,16 +219,6 @@ pub struct Config {
     keys_confirmed: HashMap<String, bool>,
 }
 
-#[derive(Debug, Default, PartialEq, Serialize, Deserialize, Clone)]
-pub struct Socks5Server {
-    #[serde(default, deserialize_with = "deserialize_string")]
-    pub proxy: String,
-    #[serde(default, deserialize_with = "deserialize_string")]
-    pub username: String,
-    #[serde(default, deserialize_with = "deserialize_string")]
-    pub password: String,
-}
-
 // more variable configs
 #[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Config2 {
@@ -248,9 +232,6 @@ pub struct Config2 {
     unlock_pin: String,
     #[serde(default, deserialize_with = "deserialize_string")]
     trusted_devices: String,
-
-    #[serde(default)]
-    socks: Option<Socks5Server>,
 
     // the other scalar value must before this
     #[serde(default, deserialize_with = "deserialize_hashmap_string_string")]
@@ -490,13 +471,6 @@ impl Config2 {
     fn load() -> Config2 {
         let mut config = Config::load_::<Config2>("2");
         let mut store = false;
-        if let Some(mut socks) = config.socks {
-            let (password, _, store2) =
-                decrypt_str_or_original(&socks.password, PASSWORD_ENC_VERSION);
-            socks.password = password;
-            config.socks = Some(socks);
-            store |= store2;
-        }
         let (unlock_pin, _, store2) =
             decrypt_str_or_original(&config.unlock_pin, PASSWORD_ENC_VERSION);
         config.unlock_pin = unlock_pin;
@@ -514,16 +488,6 @@ impl Config2 {
     fn store(&self) {
         let mut config = self.clone();
         let stored = Config::load_::<Config2>("2");
-        if let Some(mut socks) = config.socks {
-            let stored_password = stored
-                .socks
-                .as_ref()
-                .map(|socks| socks.password.as_str())
-                .unwrap_or_default();
-            socks.password =
-                keep_encrypted_storage_if_plaintext_unchanged(&socks.password, stored_password);
-            config.socks = Some(socks);
-        }
         config.unlock_pin =
             keep_encrypted_storage_if_plaintext_unchanged(&config.unlock_pin, &stored.unlock_pin);
         Config::store_(&config, "2");
@@ -1470,106 +1434,6 @@ impl Config {
         salt
     }
 
-    pub fn set_socks(socks: Option<Socks5Server>) {
-        if OVERWRITE_SETTINGS
-            .read()
-            .unwrap()
-            .contains_key(keys::OPTION_PROXY_URL)
-        {
-            return;
-        }
-
-        let mut config = CONFIG2.write().unwrap();
-        if config.socks == socks {
-            return;
-        }
-        if config.socks.is_none() {
-            let equal_to_default = |key: &str, value: &str| {
-                DEFAULT_SETTINGS
-                    .read()
-                    .unwrap()
-                    .get(key)
-                    .map_or(false, |x| *x == value)
-            };
-            let contains_url = DEFAULT_SETTINGS
-                .read()
-                .unwrap()
-                .get(keys::OPTION_PROXY_URL)
-                .is_some();
-            let url = equal_to_default(
-                keys::OPTION_PROXY_URL,
-                &socks.clone().unwrap_or_default().proxy,
-            );
-            let username = equal_to_default(
-                keys::OPTION_PROXY_USERNAME,
-                &socks.clone().unwrap_or_default().username,
-            );
-            let password = equal_to_default(
-                keys::OPTION_PROXY_PASSWORD,
-                &socks.clone().unwrap_or_default().password,
-            );
-            if contains_url && url && username && password {
-                return;
-            }
-        }
-        config.socks = socks;
-        config.store();
-    }
-
-    #[inline]
-    fn get_socks_from_custom_client_advanced_settings(
-        settings: &HashMap<String, String>,
-    ) -> Option<Socks5Server> {
-        let url = settings.get(keys::OPTION_PROXY_URL)?;
-        Some(Socks5Server {
-            proxy: url.to_owned(),
-            username: settings
-                .get(keys::OPTION_PROXY_USERNAME)
-                .map(|x| x.to_string())
-                .unwrap_or_default(),
-            password: settings
-                .get(keys::OPTION_PROXY_PASSWORD)
-                .map(|x| x.to_string())
-                .unwrap_or_default(),
-        })
-    }
-
-    pub fn get_socks() -> Option<Socks5Server> {
-        Self::get_socks_from_custom_client_advanced_settings(&OVERWRITE_SETTINGS.read().unwrap())
-            .or(CONFIG2.read().unwrap().socks.clone())
-            .or(Self::get_socks_from_custom_client_advanced_settings(
-                &DEFAULT_SETTINGS.read().unwrap(),
-            ))
-    }
-
-    #[inline]
-    pub fn is_proxy() -> bool {
-        Self::get_network_type() != NetworkType::Direct
-    }
-
-    pub fn get_network_type() -> NetworkType {
-        if OVERWRITE_SETTINGS
-            .read()
-            .unwrap()
-            .get(keys::OPTION_PROXY_URL)
-            .is_some()
-        {
-            return NetworkType::ProxySocks;
-        }
-        if CONFIG2.read().unwrap().socks.is_some() {
-            return NetworkType::ProxySocks;
-        }
-        if DEFAULT_SETTINGS
-            .read()
-            .unwrap()
-            .get(keys::OPTION_PROXY_URL)
-            .is_some()
-        {
-            return NetworkType::ProxySocks;
-        }
-        NetworkType::Direct
-    }
-
     pub fn get_unlock_pin() -> String {
         if Self::is_disable_unlock_pin() {
             return String::new();
@@ -2362,19 +2226,24 @@ impl UserDefaultConfig {
             #[cfg(any(target_os = "android", target_os = "ios"))]
             keys::OPTION_VIEW_STYLE => self.get_string(key, "adaptive", vec!["original"]),
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
-            keys::OPTION_VIEW_STYLE => self.get_string(key, "original", vec!["adaptive"]),
+            keys::OPTION_VIEW_STYLE => self.get_string(key, "adaptive", vec!["original"]),
             keys::OPTION_SCROLL_STYLE => {
                 self.get_string(key, "scrollauto", vec!["scrolledge", "scrollbar"])
             }
             keys::OPTION_IMAGE_QUALITY => {
-                self.get_string(key, "balanced", vec!["best", "low", "custom"])
+                self.get_string(key, "custom", vec!["best", "low", "balanced"])
             }
             keys::OPTION_CODEC_PREFERENCE => {
                 self.get_string(key, "auto", vec!["vp8", "vp9", "av1", "h264", "h265"])
             }
-            keys::OPTION_CUSTOM_IMAGE_QUALITY => self.get_num_string(key, 50.0, 10.0, 0xFFF as f64),
-            keys::OPTION_CUSTOM_FPS => self.get_num_string(key, 30.0, 5.0, 120.0),
+            keys::OPTION_CUSTOM_IMAGE_QUALITY => self.get_num_string(key, 100.0, 60.0, 0xFFF as f64),
+            keys::OPTION_CUSTOM_FPS => self.get_num_string(key, 60.0, 5.0, 120.0),
             keys::OPTION_ENABLE_FILE_COPY_PASTE => self.get_string(key, "Y", vec!["", "N"]),
+            // Both default to on: sessions start muted, and the toolbar shows the
+            // monitor list. Their key constants live in `base`, which depends on
+            // this crate, so the literals are used here.
+            "disable_audio" => self.get_string(key, "Y", vec!["", "N"]),
+            "show_monitors_toolbar" => self.get_string(key, "Y", vec!["", "N"]),
             keys::OPTION_EDGE_SCROLL_EDGE_THICKNESS => self.get_num_string(key, 100, 20, 150),
             keys::OPTION_TRACKPAD_SPEED => self.get_num_string(key, 100, 10, 1000),
             _ => self
@@ -2811,11 +2680,6 @@ pub fn is_disable_ab() -> bool {
 }
 
 #[inline]
-pub fn is_disable_account() -> bool {
-    is_some_hard_opton("disable-account")
-}
-
-#[inline]
 pub fn is_disable_installation() -> bool {
     is_some_hard_opton("disable-installation")
 }
@@ -2879,13 +2743,6 @@ pub mod keys {
     pub const OPTION_DISABLE_CHANGE_PERMANENT_PASSWORD: &str = "disable-change-permanent-password";
     pub const OPTION_DISABLE_CHANGE_ID: &str = "disable-change-id";
     pub const OPTION_DISABLE_UNLOCK_PIN: &str = "disable-unlock-pin";
-
-    // proxy settings
-    // The following options are not real keys, they are just used for custom client advanced settings.
-    // The real keys are in Config2::socks.
-    pub const OPTION_PROXY_URL: &str = "proxy-url";
-    pub const OPTION_PROXY_USERNAME: &str = "proxy-username";
-    pub const OPTION_PROXY_PASSWORD: &str = "proxy-password";
 }
 
 pub fn common_load<

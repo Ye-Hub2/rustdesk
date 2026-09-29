@@ -455,7 +455,17 @@ fn get_ext(name: &str) -> &str {
 
 #[inline]
 fn is_compressed_file(name: &str) -> bool {
-    let compressed_exts = ["xz", "gz", "zip", "7z", "rar", "bz2", "tgz", "png", "jpg"];
+    // Already-compressed payloads: running zstd over them burns CPU (and, on the
+    // sending side, the whole transfer is CPU-bound there) for no size win.
+    let compressed_exts = [
+        "xz", "gz", "zip", "7z", "rar", "bz2", "tgz", "txz", "zst", "br",
+        "png", "jpg", "jpeg", "gif", "webp", "heic", "avif", "jxl", "bmp",
+        "mp3", "aac", "m4a", "flac", "ogg", "opus", "wma",
+        "mp4", "m4v", "mkv", "mov", "avi", "wmv", "flv", "webm", "ts", "m2ts", "mpg", "mpeg",
+        "iso", "img", "vhd", "vhdx", "qcow2",
+        "apk", "jar", "ipa", "docx", "xlsx", "pptx", "odt", "epub",
+        "deb", "rpm", "msi", "cab", "exe", "dll",
+    ];
     let ext = get_ext(name);
     compressed_exts.contains(&ext)
 }
@@ -1339,13 +1349,45 @@ async fn init_jobs(jobs: &mut Vec<TransferJob>, stream: &mut hbb_common::Stream)
     Ok(())
 }
 
+
+/// Blocks one timer tick may send.
+///
+/// A transfer used to send at most one block per tick, which caps throughput at
+/// `BUF_SIZE / tick_period`. A 1 ms tokio interval really ticks about every 15 ms on
+/// Windows (system timer granularity), so that ceiling was a few MB/s. The budget
+/// keeps a tick's worth of work well above a gigabit link while callers still return
+/// to their select loop between ticks.
+pub const BLOCKS_PER_TICK: usize = 32;
+
+/// Sends up to [`BLOCKS_PER_TICK`] blocks, one per job at a time, and returns the
+/// last job log. Callers drive it from a timer tick.
 pub async fn handle_read_jobs(
     jobs: &mut Vec<TransferJob>,
     stream: &mut hbb_common::Stream,
 ) -> ResultType<String> {
+    let mut job_log = Default::default();
+    for _ in 0..BLOCKS_PER_TICK {
+        let (log, sent) = handle_read_jobs_round(jobs, stream).await?;
+        if !log.is_empty() {
+            job_log = log;
+        }
+        if sent == 0 {
+            break;
+        }
+    }
+    Ok(job_log)
+}
+
+/// Sends one block for the first job that has one, and reports how many blocks went
+/// out so a caller can decide whether continuing is worth it.
+async fn handle_read_jobs_round(
+    jobs: &mut Vec<TransferJob>,
+    stream: &mut hbb_common::Stream,
+) -> ResultType<(String, usize)> {
     init_jobs(jobs, stream).await?;
 
     let mut job_log = Default::default();
+    let mut sent = 0;
     let mut finished = Vec::new();
     for job in jobs.iter_mut() {
         if job.is_last_job {
@@ -1359,6 +1401,7 @@ pub async fn handle_read_jobs(
             }
             Ok(Some(block)) => {
                 stream.send(&new_block(block)).await?;
+                sent += 1;
             }
             Ok(None) => {
                 if job.job_completed() {
@@ -1384,7 +1427,7 @@ pub async fn handle_read_jobs(
     for id in finished {
         let _ = remove_job(id, jobs);
     }
-    Ok(job_log)
+    Ok((job_log, sent))
 }
 
 pub fn remove_all_empty_dir(path: &Path) -> ResultType<()> {

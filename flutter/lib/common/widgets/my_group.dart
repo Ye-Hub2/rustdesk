@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common/hbbs/hbbs.dart';
-import 'package:flutter_hbb/common/widgets/login.dart';
 import 'package:flutter_hbb/common/widgets/peers_view.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
@@ -30,13 +29,7 @@ class _MyGroupState extends State<MyGroup> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      if (!gFFI.userModel.isLogin) {
-        return Center(
-            child: ElevatedButton(
-                onPressed: loginDialog, child: Text(translate("Login"))));
-      } else if (gFFI.userModel.networkError.isNotEmpty) {
-        return netWorkErrorWidget();
-      } else if (gFFI.groupModel.groupLoading.value && gFFI.groupModel.emtpy) {
+      if (gFFI.groupModel.groupLoading.value && gFFI.groupModel.emtpy) {
         return const Center(
           child: CircularProgressIndicator(),
         );
@@ -211,8 +204,7 @@ class _MyGroupState extends State<MyGroup> {
       () {
         bool selected = !isSelectedDeviceGroup.value &&
             selectedAccessibleItemName.value == username;
-        final isMe = username == gFFI.userModel.userName.value;
-        final colorMe = MyTheme.color(context).me!;
+        final isMe = false;
         return Container(
           decoration: BoxDecoration(
             color: selected ? MyTheme.color(context).highlight : null,
@@ -242,23 +234,6 @@ class _MyGroupState extends State<MyGroup> {
                     ),
                   ),
                 ).marginOnly(right: 4),
-                if (isMe) Flexible(child: Text(displayName)),
-                if (isMe)
-                  Flexible(
-                    child: Container(
-                      margin: EdgeInsets.only(left: 5),
-                      padding: EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-                      decoration: BoxDecoration(
-                          color: colorMe.withAlpha(20),
-                          borderRadius: BorderRadius.all(Radius.circular(2)),
-                          border: Border.all(color: colorMe.withAlpha(100))),
-                      child: Text(
-                        translate('Me'),
-                        style: TextStyle(
-                            color: colorMe.withAlpha(200), fontSize: 12),
-                      ),
-                    ),
-                  ),
                 if (!isMe) Expanded(child: Text(displayName)),
               ],
             ).paddingSymmetric(vertical: 4),

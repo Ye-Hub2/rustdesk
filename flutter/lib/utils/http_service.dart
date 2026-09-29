@@ -22,10 +22,8 @@ class HttpService {
     if (!useFlutterHttp) {
       final enableFlutterHttpOnRust =
           mainGetLocalBoolOptionSync(kOptionEnableFlutterHttpOnRust);
-      // Use flutter http if:
-      // Not `enableFlutterHttpOnRust` and no proxy is set
-      useFlutterHttp =
-          !(enableFlutterHttpOnRust || await bind.mainGetProxyStatus());
+      // Use flutter http if `enableFlutterHttpOnRust` is off.
+      useFlutterHttp = !enableFlutterHttpOnRust;
     }
 
     if (useFlutterHttp) {

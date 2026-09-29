@@ -24,9 +24,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::common::SOFTWARE_UPDATE_URL;
-#[cfg(feature = "flutter")]
-use crate::hbbs_http::account;
 #[cfg(not(any(target_os = "ios")))]
 use crate::ipc;
 
@@ -34,6 +31,13 @@ type Message = RendezvousMessage;
 
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub type Children = Arc<Mutex<(bool, HashMap<(String, String), Child>)>>;
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LoginDeviceInfo {
+    pub os: String,
+    pub r#type: String,
+    pub name: String,
+}
 
 #[derive(Clone, Debug, Serialize)]
 pub struct UiStatus {
@@ -46,13 +50,6 @@ pub struct UiStatus {
     pub id: String,
     #[cfg(feature = "flutter")]
     pub video_conn_count: usize,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct LoginDeviceInfo {
-    pub os: String,
-    pub r#type: String,
-    pub name: String,
 }
 
 lazy_static::lazy_static! {
@@ -354,8 +351,8 @@ pub fn get_options() -> String {
 }
 
 #[inline]
-pub fn test_if_valid_server(host: String, test_with_proxy: bool) -> String {
-    hbb_common::socket_client::test_if_valid_server(&host, test_with_proxy)
+pub fn test_if_valid_server(host: String) -> String {
+    hbb_common::socket_client::test_if_valid_server(&host)
 }
 
 #[inline]
@@ -460,8 +457,7 @@ pub fn set_option(key: String, value: String) {
     }
     #[cfg(any(target_os = "android", target_os = "ios"))]
     {
-        let _nat = crate::CheckTestNatType::new();
-        Config::set_option(key, value);
+            Config::set_option(key, value);
     }
 }
 
@@ -481,59 +477,6 @@ pub fn install_options() -> String {
     return "{}".to_owned();
 }
 
-#[inline]
-pub fn get_socks() -> Vec<String> {
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
-    let s = ipc::get_socks();
-    #[cfg(any(target_os = "android", target_os = "ios"))]
-    let s = Config::get_socks();
-    match s {
-        None => Vec::new(),
-        Some(s) => {
-            let mut v = Vec::new();
-            v.push(s.proxy);
-            v.push(s.username);
-            v.push(s.password);
-            v
-        }
-    }
-}
-
-#[inline]
-pub fn set_socks(proxy: String, username: String, password: String) {
-    let socks = config::Socks5Server {
-        proxy,
-        username,
-        password,
-    };
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
-    ipc::set_socks(socks).ok();
-    #[cfg(any(target_os = "android", target_os = "ios"))]
-    {
-        let _nat = crate::CheckTestNatType::new();
-        if socks.proxy.is_empty() {
-            Config::set_socks(None);
-        } else {
-            Config::set_socks(Some(socks));
-        }
-        log::info!("socks updated");
-    }
-    #[cfg(target_os = "android")]
-    {
-        crate::RendezvousMediator::restart();
-    }
-}
-
-#[inline]
-#[cfg(feature = "flutter")]
-pub fn get_proxy_status() -> bool {
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
-    return ipc::get_proxy_status();
-
-    // Currently, only the desktop version has proxy settings.
-    #[cfg(any(target_os = "android", target_os = "ios"))]
-    return false;
-}
 
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 #[inline]
@@ -746,18 +689,6 @@ pub fn current_is_wayland() -> bool {
     return false;
 }
 
-#[inline]
-pub fn get_new_version() -> String {
-    (*SOFTWARE_UPDATE_URL
-        .lock()
-        .unwrap()
-        .rsplit('/')
-        .next()
-        .unwrap_or(""))
-    .to_string()
-}
-
-#[inline]
 pub fn get_version() -> String {
     crate::VERSION.to_owned()
 }
@@ -1124,17 +1055,6 @@ pub fn deploy_device(token: String, new_id: Option<String>) -> DeployResult {
                     }
                 }
             }
-            #[cfg(not(any(target_os = "android", target_os = "ios")))]
-            if let Err(err) = ipc::notify_deployed() {
-                log::warn!("Failed to notify deployed state: {}", err);
-            }
-            #[cfg(target_os = "android")]
-            {
-                crate::rendezvous_mediator::NEEDS_DEPLOY
-                    .store(false, std::sync::atomic::Ordering::SeqCst);
-                crate::rendezvous_mediator::reset_needs_deploy_notification();
-                crate::rendezvous_mediator::RendezvousMediator::restart();
-            }
             DeployResult::Ok
         }
         "NOT_ENABLED" => DeployResult::NotEnabled,
@@ -1287,21 +1207,6 @@ fn check_connect_status(reconnect: bool) -> mpsc::UnboundedSender<ipc::Data> {
 }
 
 #[cfg(feature = "flutter")]
-pub fn account_auth(op: String, id: String, uuid: String, remember_me: bool) {
-    account::OidcSession::account_auth(get_api_server(), op, id, uuid, remember_me);
-}
-
-#[cfg(feature = "flutter")]
-pub fn account_auth_cancel() {
-    account::OidcSession::auth_cancel();
-}
-
-#[cfg(feature = "flutter")]
-pub fn account_auth_result() -> String {
-    serde_json::to_string(&account::OidcSession::get_result()).unwrap_or_default()
-}
-
-#[cfg(feature = "flutter")]
 pub fn set_user_default_option(key: String, value: String) {
     use hbb_common::config::UserDefaultConfig;
     UserDefaultConfig::load().set(key, value);
@@ -1311,17 +1216,6 @@ pub fn set_user_default_option(key: String, value: String) {
 pub fn get_user_default_option(key: String) -> String {
     use hbb_common::config::UserDefaultConfig;
     UserDefaultConfig::load().get(&key)
-}
-
-pub fn get_fingerprint() -> String {
-    #[cfg(any(target_os = "android", target_os = "ios"))]
-    if Config::get_key_confirmed() {
-        return crate::common::pk_to_fingerprint(Config::get_key_pair().1);
-    } else {
-        return "".to_owned();
-    }
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
-    return ipc::get_fingerprint();
 }
 
 #[inline]
@@ -1337,6 +1231,17 @@ pub fn get_login_device_info() -> LoginDeviceInfo {
 #[inline]
 pub fn get_login_device_info_json() -> String {
     serde_json::to_string(&get_login_device_info()).unwrap_or("{}".to_string())
+}
+
+pub fn get_fingerprint() -> String {
+    #[cfg(any(target_os = "android", target_os = "ios"))]
+    if Config::get_key_confirmed() {
+        return crate::common::pk_to_fingerprint(Config::get_key_pair().1);
+    } else {
+        return "".to_owned();
+    }
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    return ipc::get_fingerprint();
 }
 
 // notice: avoiding create ipc connection repeatedly,
@@ -1391,16 +1296,15 @@ async fn check_connect_status_(reconnect: bool, rx: mpsc::UnboundedReceiver<ipc:
                             Ok(Some(ipc::Data::VideoConnCount(Some(n)))) => {
                                 video_conn_count = n;
                             }
-                            Ok(Some(ipc::Data::OnlineStatus(Some((mut x, _c))))) => {
-                                if x > 0 {
-                                    x = 1
-                                }
+                            Ok(Some(ipc::Data::OnlineStatus(Some((_, _c))))) => {
+                                // Direct-connect only: the service is reachable whenever this
+                                // message arrives, so the (now static) online state is ignored.
                                 #[cfg(not(feature = "flutter"))]
                                 {
                                     key_confirmed = _c;
                                 }
                                 *UI_STATUS.lock().unwrap() = UiStatus {
-                                    status_num: x as _,
+                                    status_num: 1,
                                     #[cfg(not(feature = "flutter"))]
                                     key_confirmed: _c,
                                     #[cfg(not(any(target_os = "android", target_os = "ios")))]

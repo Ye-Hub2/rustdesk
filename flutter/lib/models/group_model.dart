@@ -21,7 +21,6 @@ class GroupModel {
   WeakReference<FFI> parent;
   var initialized = false;
   var _cacheLoadOnceFlag = false;
-  var _statusCode = 200;
 
   final Map<String, VoidCallback> _peerIdUpdateListeners = {};
 
@@ -38,8 +37,9 @@ class GroupModel {
 
   Future<void> pull({force = true, quiet = false}) async {
     if (bind.isDisableGroupPanel()) return;
-    if (!gFFI.userModel.isLogin || groupLoading.value) return;
-    if (gFFI.userModel.networkError.isNotEmpty) return;
+    // Account support was removed; device groups come from the server-side account.
+    return;
+    // ignore: dead_code
     if (!force && initialized) return;
     if (!quiet) {
       groupLoading.value = true;
@@ -54,11 +54,7 @@ class GroupModel {
     groupLoading.value = false;
     initialized = true;
     platformFFI.tryHandle({'name': LoadEvent.group});
-    if (_statusCode == 401) {
-      gFFI.userModel.reset(resetOther: true);
-    } else {
-      _saveCache();
-    }
+    _saveCache();
   }
 
   Future<void> _pull() async {
@@ -77,13 +73,6 @@ class GroupModel {
       return;
     }
     deviceGroups.value = tmpDeviceGroups;
-    // me first
-    var index = tmpUsers
-        .indexWhere((user) => user.name == gFFI.userModel.userName.value);
-    if (index != -1) {
-      var user = tmpUsers.removeAt(index);
-      tmpUsers.insert(0, user);
-    }
     users.value = tmpUsers;
     if (!users.any((u) => u.name == selectedAccessibleItemName.value) &&
         !deviceGroups.any((d) => d.name == selectedAccessibleItemName.value)) {
@@ -120,7 +109,6 @@ class GroupModel {
               'pageSize': pageSize.toString(),
             });
         final resp = await http.get(uri, headers: getHttpHeaders());
-        _statusCode = resp.statusCode;
         Map<String, dynamic> json =
             _jsonDecodeResp(decode_http_response(resp), resp.statusCode);
         if (json.containsKey('error')) {
@@ -178,7 +166,6 @@ class GroupModel {
               'status': '1',
             });
         final resp = await http.get(uri, headers: getHttpHeaders());
-        _statusCode = resp.statusCode;
         Map<String, dynamic> json =
             _jsonDecodeResp(decode_http_response(resp), resp.statusCode);
         if (json.containsKey('error')) {
@@ -243,7 +230,6 @@ class GroupModel {
             port: uri0.port,
             queryParameters: queryParameters);
         final resp = await http.get(uri, headers: getHttpHeaders());
-        _statusCode = resp.statusCode;
 
         Map<String, dynamic> json =
             _jsonDecodeResp(decode_http_response(resp), resp.statusCode);

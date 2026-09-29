@@ -16,9 +16,9 @@ pub use self::server::*;
 mod client;
 mod lan;
 #[cfg(not(any(target_os = "ios")))]
-mod rendezvous_mediator;
+mod direct_server;
 #[cfg(not(any(target_os = "ios")))]
-pub use self::rendezvous_mediator::*;
+pub use self::direct_server::*;
 /// cbindgen:ignore
 pub mod common;
 #[cfg(not(any(target_os = "ios")))]
@@ -54,9 +54,6 @@ mod tray;
 
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 mod whiteboard;
-
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
-mod updater;
 
 mod ui_cm_interface;
 mod ui_interface;

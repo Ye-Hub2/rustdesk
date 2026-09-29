@@ -102,7 +102,6 @@ pub fn start(args: &mut [String]) {
     }
     if args.is_empty() {
         std::thread::spawn(move || check_zombie());
-        crate::common::check_software_update();
         frame.event_handler(UI {});
         frame.sciter_handler(UIHostHandler {});
         page = "index.html";
@@ -304,10 +303,6 @@ impl UI {
         hbb_common::config::is_disable_settings()
     }
 
-    pub fn is_disable_account(&self) -> bool {
-        hbb_common::config::is_disable_account()
-    }
-
     pub fn is_disable_installation(&self) -> bool {
         hbb_common::config::is_disable_installation()
     }
@@ -326,8 +321,8 @@ impl UI {
         m
     }
 
-    fn test_if_valid_server(&self, host: String, test_with_proxy: bool) -> String {
-        test_if_valid_server(host, test_with_proxy)
+    fn test_if_valid_server(&self, host: String) -> String {
+        test_if_valid_server(host)
     }
 
     fn get_sound_inputs(&self) -> Value {
@@ -358,14 +353,6 @@ impl UI {
 
     fn install_options(&self) -> String {
         install_options()
-    }
-
-    fn get_socks(&self) -> Value {
-        Value::from_iter(get_socks())
-    }
-
-    fn set_socks(&self, proxy: String, username: String, password: String) {
-        set_socks(proxy, username, password)
     }
 
     fn is_installed(&self) -> bool {
@@ -518,14 +505,6 @@ impl UI {
         current_is_wayland()
     }
 
-    fn get_software_update_url(&self) -> String {
-        crate::SOFTWARE_UPDATE_URL.lock().unwrap().clone()
-    }
-
-    fn get_new_version(&self) -> String {
-        get_new_version()
-    }
-
     fn get_version(&self) -> String {
         get_version()
     }
@@ -546,19 +525,6 @@ impl UI {
         #[cfg(target_os = "linux")]
         let p = "deb";
         p.to_owned()
-    }
-
-    fn get_software_store_path(&self) -> String {
-        let mut p = std::env::temp_dir();
-        let name = crate::SOFTWARE_UPDATE_URL
-            .lock()
-            .unwrap()
-            .split("/")
-            .last()
-            .map(|x| x.to_owned())
-            .unwrap_or(crate::get_app_name());
-        p.push(name);
-        format!("{}.{}", p.to_string_lossy(), self.get_software_ext())
     }
 
     fn create_shortcut(&self, _id: String) {
@@ -663,10 +629,6 @@ impl UI {
         handle_relay_id(&id).to_owned()
     }
 
-    fn get_login_device_info(&self) -> String {
-        get_login_device_info_json()
-    }
-
     fn support_remove_wallpaper(&self) -> bool {
         support_remove_wallpaper()
     }
@@ -729,7 +691,6 @@ impl sciter::EventHandler for UI {
         fn is_outgoing_only();
         fn is_incoming_only();
         fn is_disable_settings();
-        fn is_disable_account();
         fn is_disable_installation();
         fn is_disable_ab();
         fn get_id();
@@ -760,8 +721,6 @@ impl sciter::EventHandler for UI {
         fn get_supported_privacy_mode_impls();
         fn is_root();
         fn is_release();
-        fn set_socks(String, String, String);
-        fn get_socks();
         fn is_share_rdp();
         fn set_share_rdp(bool);
         fn is_installed_lower_version();
@@ -783,19 +742,16 @@ impl sciter::EventHandler for UI {
         fn forget_password(String);
         fn set_peer_option(String, String, String);
         fn get_license();
-        fn test_if_valid_server(String, bool);
+        fn test_if_valid_server(String);
         fn get_sound_inputs();
         fn set_options(Value);
         fn set_option(String, String);
-        fn get_software_update_url();
-        fn get_new_version();
         fn get_version();
         fn get_fingerprint();
         fn update_me(String);
         fn show_run_without_install();
         fn run_without_install();
         fn get_app_name();
-        fn get_software_store_path();
         fn get_software_ext();
         fn open_url(String);
         fn change_id(String);
@@ -811,7 +767,6 @@ impl sciter::EventHandler for UI {
         fn get_langs();
         fn video_save_directory(bool);
         fn handle_relay_id(String);
-        fn get_login_device_info();
         fn support_remove_wallpaper();
         fn has_valid_2fa();
         fn generate2fa();

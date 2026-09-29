@@ -1,4 +1,4 @@
-use crate::{bail, config, tcp, websocket, ResultType};
+use crate::{bail, tcp, websocket, ResultType};
 #[cfg(feature = "webrtc")]
 use crate::webrtc;
 use sodiumoxide::crypto::secretbox::Key;
@@ -250,11 +250,9 @@ impl Stream {
     pub async fn connect_websocket(
         url: impl AsRef<str>,
         local_addr: Option<SocketAddr>,
-        proxy_conf: Option<&config::Socks5Server>,
         timeout_ms: u64,
     ) -> ResultType<Self> {
-        let ws_stream =
-            websocket::WsFramedStream::new(url, local_addr, proxy_conf, timeout_ms).await?;
+        let ws_stream = websocket::WsFramedStream::new(url, local_addr, timeout_ms).await?;
         log::debug!("WebSocket connection established");
         Ok(Self::WebSocket(ws_stream))
     }

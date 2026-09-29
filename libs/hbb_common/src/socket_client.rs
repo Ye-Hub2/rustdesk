@@ -1,7 +1,7 @@
 #[cfg(feature = "webrtc")]
 use crate::webrtc::{self, is_webrtc_endpoint};
 use crate::{
-    config::{Config, NetworkType},
+    config::Config,
     tcp::FramedStream,
     udp::FramedSocket,
     websocket::{self, check_ws, is_ws_endpoint},
@@ -76,25 +76,11 @@ pub fn split_host_port<T: std::string::ToString>(host: T) -> Option<(String, i32
     None
 }
 
-pub fn test_if_valid_server(host: &str, test_with_proxy: bool) -> String {
+pub fn test_if_valid_server(host: &str) -> String {
     let host = check_port(host, 0);
     use std::net::ToSocketAddrs;
 
-    if test_with_proxy && NetworkType::ProxySocks == Config::get_network_type() {
-        test_if_valid_server_for_proxy_(&host)
-    } else {
-        match host.to_socket_addrs() {
-            Err(err) => err.to_string(),
-            Ok(_) => "".to_owned(),
-        }
-    }
-}
-
-#[inline]
-pub fn test_if_valid_server_for_proxy_(host: &str) -> String {
-    // `&host.into_target_addr()` is defined in `tokio-socs`, but is a common pattern for testing,
-    // it can be used for both `socks` and `http` proxy.
-    match &host.into_target_addr() {
+    match host.to_socket_addrs() {
         Err(err) => err.to_string(),
         Ok(_) => "".to_owned(),
     }
@@ -140,7 +126,7 @@ pub async fn connect_tcp<
     let target_str = check_ws(&target.to_string());
     if is_ws_endpoint(&target_str) {
         return Ok(Stream::WebSocket(
-            websocket::WsFramedStream::new(target_str, None, None, ms_timeout).await?,
+            websocket::WsFramedStream::new(target_str, None, ms_timeout).await?,
         ));
     }
     connect_tcp_local(target, None, ms_timeout).await
@@ -155,12 +141,6 @@ pub async fn connect_tcp_local<
     local: Option<SocketAddr>,
     ms_timeout: u64,
 ) -> ResultType<Stream> {
-    if let Some(conf) = Config::get_socks() {
-        return Ok(Stream::Tcp(
-            FramedStream::connect(target, local, &conf, ms_timeout).await?,
-        ));
-    }
-
     if let Some(target_addr) = target.resolve() {
         if let Some(local_addr) = local {
             if local_addr.is_ipv6() && target_addr.is_ipv4() {
@@ -251,12 +231,8 @@ pub async fn new_udp_for(
     target: &str,
     ms_timeout: u64,
 ) -> ResultType<(FramedSocket, TargetAddr<'static>)> {
-    let (ipv4, target) = if NetworkType::Direct == Config::get_network_type() {
-        let addr = test_target(target).await?;
-        (addr.is_ipv4(), addr.into_target_addr()?)
-    } else {
-        (true, target.into_target_addr()?)
-    };
+    let addr = test_target(target).await?;
+    let (ipv4, target) = (addr.is_ipv4(), addr.into_target_addr()?);
     Ok((
         new_udp(Config::get_any_listen_addr(ipv4), ms_timeout).await?,
         target.to_owned(),
@@ -264,28 +240,13 @@ pub async fn new_udp_for(
 }
 
 async fn new_udp<T: ToSocketAddrs>(local: T, ms_timeout: u64) -> ResultType<FramedSocket> {
-    match Config::get_socks() {
-        None => Ok(FramedSocket::new(local).await?),
-        Some(conf) => {
-            let socket = FramedSocket::new_proxy(
-                conf.proxy.as_str(),
-                local,
-                conf.username.as_str(),
-                conf.password.as_str(),
-                ms_timeout,
-            )
-            .await?;
-            Ok(socket)
-        }
-    }
+    let _ = ms_timeout;
+    Ok(FramedSocket::new(local).await?)
 }
 
 pub async fn rebind_udp_for(
     target: &str,
 ) -> ResultType<Option<(FramedSocket, TargetAddr<'static>)>> {
-    if Config::get_network_type() != NetworkType::Direct {
-        return Ok(None);
-    }
     let addr = test_target(target).await?;
     let v4 = addr.is_ipv4();
     Ok(Some((
@@ -335,20 +296,12 @@ mod tests {
 
     #[test]
     fn test_test_if_valid_server() {
-        assert!(!test_if_valid_server("a", false).is_empty());
+        assert!(!test_if_valid_server("a").is_empty());
         // on Linux, "1" is resolved to "0.0.0.1"
-        assert!(test_if_valid_server("1.1.1.1", false).is_empty());
-        assert!(test_if_valid_server("1.1.1.1:1", false).is_empty());
-        assert!(test_if_valid_server("microsoft.com", false).is_empty());
-        assert!(test_if_valid_server("microsoft.com:1", false).is_empty());
-
-        // with proxy
-        // `:0` indicates `let host = check_port(host, 0);` is called.
-        assert!(test_if_valid_server_for_proxy_("a:0").is_empty());
-        assert!(test_if_valid_server_for_proxy_("1.1.1.1:0").is_empty());
-        assert!(test_if_valid_server_for_proxy_("1.1.1.1:1").is_empty());
-        assert!(test_if_valid_server_for_proxy_("abc.com:0").is_empty());
-        assert!(test_if_valid_server_for_proxy_("abcd.com:1").is_empty());
+        assert!(test_if_valid_server("1.1.1.1").is_empty());
+        assert!(test_if_valid_server("1.1.1.1:1").is_empty());
+        assert!(test_if_valid_server("microsoft.com").is_empty());
+        assert!(test_if_valid_server("microsoft.com:1").is_empty());
     }
 
     #[test]

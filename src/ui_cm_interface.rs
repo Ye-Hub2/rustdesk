@@ -799,8 +799,17 @@ impl<T: InvokeUiCM> IpcTaskRunner<T> {
                 _ = file_timer.tick() => {
                     if !self.read_jobs.is_empty() {
                         let conn_id = self.conn_id;
-                        if let Err(e) = handle_read_jobs_tick(&mut self.read_jobs, &self.tx, conn_id).await {
-                            log::error!("Error processing read jobs: {}", e);
+                        // One block per tick caps throughput at the tick rate, and a 5 ms
+                        // interval really ticks far slower than that on Windows.
+                        for _ in 0..fs::BLOCKS_PER_TICK {
+                            match handle_read_jobs_tick(&mut self.read_jobs, &self.tx, conn_id).await {
+                                Ok(0) => break,
+                                Ok(_) => {}
+                                Err(e) => {
+                                    log::error!("Error processing read jobs: {}", e);
+                                    break;
+                                }
+                            }
                         }
                         let log = fs::serialize_transfer_jobs(&self.read_jobs);
                         self.cm.ui_handler.file_transfer_log("transfer", &log);
@@ -1410,8 +1419,9 @@ async fn handle_read_jobs_tick(
     jobs: &mut Vec<fs::TransferJob>,
     tx: &UnboundedSender<Data>,
     conn_id: i32,
-) -> ResultType<()> {
+) -> ResultType<usize> {
     let mut finished = Vec::new();
+    let mut sent = 0;
 
     for job in jobs.iter_mut() {
         if job.is_last_job {
@@ -1457,6 +1467,8 @@ async fn handle_read_jobs_tick(
                     conn_id,
                 }) {
                     log::error!("error sending FileBlockFromCM via IPC: {}", e);
+                } else {
+                    sent += 1;
                 }
             }
             Ok(None) => {
@@ -1495,7 +1507,7 @@ async fn handle_read_jobs_tick(
         let _ = fs::remove_job(id, jobs);
     }
 
-    Ok(())
+    Ok(sent)
 }
 
 /// Initialize a read job's data stream and handle digest sending for overwrite detection.

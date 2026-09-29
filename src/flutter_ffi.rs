@@ -64,14 +64,11 @@ fn initialize(app_dir: &str, custom_client_config: &str) {
         hbb_common::init_log(false, "");
         #[cfg(feature = "mediacodec")]
         scrap::mediacodec::check_mediacodec();
-        crate::common::test_rendezvous_server();
-        crate::common::test_nat_type();
     }
     #[cfg(target_os = "ios")]
     {
         use hbb_common::env_logger::*;
         init_from_env(Env::default().filter_or(DEFAULT_FILTER_ENV, "debug"));
-        crate::common::test_nat_type();
     }
     #[cfg(any(target_os = "android", target_os = "ios"))]
     {
@@ -938,10 +935,6 @@ pub fn main_get_sound_inputs() -> Vec<String> {
     vec![String::from("")]
 }
 
-pub fn main_get_login_device_info() -> SyncReturn<String> {
-    SyncReturn(get_login_device_info_json())
-}
-
 pub fn main_change_id(new_id: String) {
     change_id(new_id)
 }
@@ -1017,10 +1010,6 @@ pub fn main_set_option(key: String, value: String) {
             hbb_common::tls::reset_tls_cache();
         }
         set_option(key, value.clone());
-        #[cfg(target_os = "android")]
-        crate::rendezvous_mediator::RendezvousMediator::restart();
-        #[cfg(any(target_os = "android", target_os = "ios"))]
-        crate::common::test_rendezvous_server();
     } else {
         set_option(key, value.clone());
     }
@@ -1063,20 +1052,8 @@ pub fn main_set_options(json: String) {
     }
 }
 
-pub fn main_test_if_valid_server(server: String, test_with_proxy: bool) -> String {
-    test_if_valid_server(server, test_with_proxy)
-}
-
-pub fn main_set_socks(proxy: String, username: String, password: String) {
-    set_socks(proxy, username, password)
-}
-
-pub fn main_get_proxy_status() -> bool {
-    get_proxy_status()
-}
-
-pub fn main_get_socks() -> Vec<String> {
-    get_socks()
+pub fn main_test_if_valid_server(server: String) -> String {
+    test_if_valid_server(server)
 }
 
 pub fn main_get_app_name() -> String {
@@ -1744,12 +1721,12 @@ pub fn get_voice_call_input_device(_is_cm: bool) -> String {
     "".to_owned()
 }
 
-pub fn main_get_last_remote_id() -> String {
-    LocalConfig::get_remote_id()
+pub fn main_get_login_device_info() -> SyncReturn<String> {
+    SyncReturn(get_login_device_info_json())
 }
 
-pub fn main_get_software_update_url() {
-    crate::common::check_software_update();
+pub fn main_get_last_remote_id() -> String {
+    LocalConfig::get_remote_id()
 }
 
 pub fn main_get_home_dir() -> String {
@@ -2127,7 +2104,6 @@ pub fn main_stop_service() {
     #[cfg(target_os = "android")]
     {
         config::Config::set_option("stop-service".into(), "Y".into());
-        crate::rendezvous_mediator::RendezvousMediator::restart();
     }
 }
 
@@ -2135,8 +2111,6 @@ pub fn main_start_service() {
     #[cfg(target_os = "android")]
     {
         config::Config::set_option("stop-service".into(), "".into());
-        crate::rendezvous_mediator::reset_needs_deploy_notification();
-        crate::rendezvous_mediator::RendezvousMediator::restart();
     }
 }
 
@@ -2352,10 +2326,6 @@ pub fn main_goto_install() -> SyncReturn<bool> {
     SyncReturn(true)
 }
 
-pub fn main_get_new_version() -> SyncReturn<String> {
-    SyncReturn(get_new_version())
-}
-
 pub fn main_update_me() -> SyncReturn<bool> {
     update_me("".to_owned());
     SyncReturn(true)
@@ -2391,20 +2361,6 @@ pub fn install_install_path() -> SyncReturn<String> {
 
 pub fn install_install_options() -> SyncReturn<String> {
     SyncReturn(install_options())
-}
-
-pub fn main_account_auth(op: String, remember_me: bool) {
-    let id = get_id();
-    let uuid = get_uuid();
-    account_auth(op, id, uuid, remember_me);
-}
-
-pub fn main_account_auth_cancel() {
-    account_auth_cancel()
-}
-
-pub fn main_account_auth_result() -> String {
-    account_auth_result()
 }
 
 pub fn main_on_main_window_close() {
@@ -2484,10 +2440,6 @@ pub fn is_disable_settings() -> SyncReturn<bool> {
 
 pub fn is_disable_ab() -> SyncReturn<bool> {
     SyncReturn(config::is_disable_ab())
-}
-
-pub fn is_disable_account() -> SyncReturn<bool> {
-    SyncReturn(config::is_disable_account())
 }
 
 pub fn is_disable_group_panel() -> SyncReturn<bool> {
@@ -2681,15 +2633,7 @@ pub fn main_get_common(key: String) -> String {
     } else if key == "local-permanent-password-set" {
         return ui_interface::is_local_permanent_password_set().to_string();
     } else {
-        if key.starts_with("download-data-") {
-            let id = key.replace("download-data-", "");
-            match crate::hbbs_http::downloader::get_download_data(&id) {
-                Ok(data) => serde_json::to_string(&data).unwrap_or_default(),
-                Err(e) => {
-                    format!("error:{}", e)
-                }
-            }
-        } else if key.starts_with("download-file-") {
+        if key.starts_with("download-file-") {
             let _version = key.replace("download-file-", "");
             #[cfg(target_os = "windows")]
             return match (
@@ -2767,77 +2711,6 @@ pub fn main_set_common(_key: String, _value: String) {
                 serde_json::ser::to_string(&data).unwrap_or("".to_owned()),
             );
         });
-    }
-    #[cfg(any(target_os = "windows", target_os = "macos"))]
-    {
-        use crate::updater::get_download_file_from_url;
-        if _key == "download-new-version" {
-            let download_url = _value.clone();
-            let event_key = "download-new-version".to_owned();
-            let data = if let Some(download_file) = get_download_file_from_url(&download_url) {
-                std::fs::remove_file(&download_file).ok();
-                match crate::hbbs_http::downloader::download_file(
-                    download_url,
-                    Some(PathBuf::from(download_file)),
-                    Some(Duration::from_secs(3)),
-                ) {
-                    Ok(id) => HashMap::from([("name", event_key), ("id", id)]),
-                    Err(e) => HashMap::from([("name", event_key), ("error", e.to_string())]),
-                }
-            } else {
-                HashMap::from([
-                    ("name", event_key),
-                    ("error", "Invalid download url".to_string()),
-                ])
-            };
-            let _res = flutter::push_global_event(
-                flutter::APP_TYPE_MAIN,
-                serde_json::ser::to_string(&data).unwrap_or("".to_owned()),
-            );
-        } else if _key == "update-me" {
-            if let Some(new_version_file) = get_download_file_from_url(&_value) {
-                log::debug!(
-                    "New version file is downloaded, update begin, {:?}",
-                    new_version_file.to_str()
-                );
-                if let Some(f) = new_version_file.to_str() {
-                    // 1.4.0 does not support "--update"
-                    // But we can assume that the new version supports it.
-
-                    #[cfg(any(target_os = "windows", target_os = "macos"))]
-                    match crate::platform::update_to(f) {
-                        Ok(_) => {
-                            log::info!("Update process is launched successfully!");
-                        }
-                        Err(e) => {
-                            log::error!("Failed to update to new version, {}", e);
-                            fs::remove_file(f).ok();
-                        }
-                    }
-                }
-            }
-        } else if _key == "extract-update-dmg" {
-            #[cfg(target_os = "macos")]
-            {
-                if let Some(new_version_file) = get_download_file_from_url(&_value) {
-                    if let Some(f) = new_version_file.to_str() {
-                        crate::platform::macos::extract_update_dmg(f);
-                    } else {
-                        // unreachable!()
-                        log::error!("Failed to get the new version file path");
-                    }
-                } else {
-                    // unreachable!()
-                    log::error!("Failed to get the new version file from url: {}", _value);
-                }
-            }
-        }
-    }
-
-    if _key == "remove-downloader" {
-        crate::hbbs_http::downloader::remove(&_value);
-    } else if _key == "cancel-downloader" {
-        crate::hbbs_http::downloader::cancel(&_value);
     }
 
     #[cfg(target_os = "linux")]
@@ -2940,8 +2813,6 @@ pub mod server_side {
     pub unsafe extern "system" fn Java_ffi_FFI_startService(_env: JNIEnv, _class: JClass) {
         log::debug!("startService from jvm");
         config::Config::set_option("stop-service".into(), "".into());
-        crate::rendezvous_mediator::reset_needs_deploy_notification();
-        crate::rendezvous_mediator::RendezvousMediator::restart();
     }
 
     #[no_mangle]
