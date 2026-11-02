@@ -1,0 +1,8 @@
+name: Probe Flutter Build No With
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    uses: ./.github/workflows/flutter-build.yml
+    secrets: inherit
