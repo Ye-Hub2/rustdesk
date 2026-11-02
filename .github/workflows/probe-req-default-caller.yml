@@ -1,7 +1,0 @@
-name: Probe Req Default Caller
-on:
-  workflow_dispatch:
-
-jobs:
-  probe:
-    uses: ./.github/workflows/probe-req-default.yml

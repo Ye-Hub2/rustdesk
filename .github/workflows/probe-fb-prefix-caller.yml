@@ -1,6 +1,0 @@
-name: Probe FB Prefix Caller 9
-'on':
-  workflow_dispatch: null
-jobs:
-  probe:
-    uses: ./.github/workflows/probe-fb-prefix.yml

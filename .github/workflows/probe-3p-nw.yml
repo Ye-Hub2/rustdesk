@@ -1,7 +1,0 @@
-name: Probe Third Party No With
-on:
-  workflow_dispatch:
-
-jobs:
-  probe:
-    uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
