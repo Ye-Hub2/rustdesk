@@ -1,0 +1,7 @@
+name: Probe Input RunsOn Caller
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    uses: ./.github/workflows/probe-input-runson.yml

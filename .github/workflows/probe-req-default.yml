@@ -1,0 +1,15 @@
+name: Probe Req Default Only
+on:
+  workflow_call:
+    inputs:
+        target:
+            description: 'Target'
+            required: true
+            type: string
+            default: 'windows-2022'
+
+jobs:
+  child:
+    runs-on: windows-2022
+    steps:
+      - run: echo "${{ inputs.target }}"

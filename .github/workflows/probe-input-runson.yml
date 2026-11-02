@@ -1,0 +1,13 @@
+name: Probe Input RunsOn
+on:
+  workflow_call:
+    inputs:
+        target:
+            type: string
+            default: 'windows-2022'
+
+jobs:
+  child:
+    runs-on: ${{ inputs.target }}
+    steps:
+      - run: echo b
