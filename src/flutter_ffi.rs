@@ -47,6 +47,9 @@ fn initialize(app_dir: &str, custom_client_config: &str) {
     {
         *config::APP_DIR.write().unwrap() = app_dir.to_owned();
     }
+    // Before the custom client config, so an operator's custom.txt still wins.
+    #[cfg(feature = "lan-only")]
+    crate::lan_only_ui_defaults::apply();
     // core_main's load_custom_client does not work for flutter since it is only applied to its load_library in main.c
     if custom_client_config.is_empty() {
         crate::load_custom_client();

@@ -87,3 +87,7 @@ pub mod virtual_display_manager;
 
 #[cfg_attr(feature = "lan-only", path = "lan_only/kcp_stream.rs")]
 mod kcp_stream;
+
+#[cfg(feature = "lan-only")]
+#[path = "lan_only/ui_defaults.rs"]
+mod lan_only_ui_defaults;

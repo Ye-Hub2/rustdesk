@@ -95,3 +95,7 @@ jobs:
     - name: Check lan-only feature
       shell: bash
       run: cargo check --locked --lib --no-default-features --features lan-only 2>&1 | tail -n 200
+
+    - name: Test lan-only ui defaults
+      shell: bash
+      run: cargo test --locked --lib --no-default-features --features lan-only lan_only_ui_defaults 2>&1 | tail -n 60
