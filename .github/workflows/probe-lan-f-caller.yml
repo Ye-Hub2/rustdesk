@@ -1,9 +1,0 @@
-name: Probe Lan F Caller
-on:
-  workflow_dispatch: null
-
-jobs:
-  probe:
-    uses: ./.github/workflows/probe-lan-f.yml
-    with:
-      upload-artifact: false
