@@ -130,6 +130,12 @@ def make_parser():
         help='Enable feature vram, only available on windows now.'
     )
     parser.add_argument(
+        '--lan-only',
+        action='store_true',
+        help='Enable feature lan-only: drop rendezvous, relay, hole punching, '
+             'update and account paths, keep direct-IP sessions only.'
+    )
+    parser.add_argument(
         '--portable',
         action='store_true',
         help='Build windows portable'
@@ -318,6 +324,8 @@ def get_features(args):
         features.append('hwcodec')
     if args.vram:
         features.append('vram')
+    if args.lan_only:
+        features.append('lan-only')
     if args.flutter:
         features.append('flutter')
     if args.unix_file_copy_paste:
