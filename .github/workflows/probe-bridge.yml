@@ -1,0 +1,7 @@
+name: Probe Bridge
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    uses: ./.github/workflows/bridge.yml
