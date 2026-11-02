@@ -1,0 +1,7 @@
+name: Probe Reuse Caller 2
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    uses: ./.github/workflows/probe-reuse-child2.yml
