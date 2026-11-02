@@ -281,11 +281,11 @@ const double kDesktopFileTransferRowHeight = 30.0;
 const double kDesktopFileTransferHeaderHeight = 25.0;
 
 const double kMinFps = 5;
-const double kDefaultFps = 30;
+const double kDefaultFps = 60;
 const double kMaxFps = 120;
 
-const double kMinQuality = 10;
-const double kDefaultQuality = 50;
+const double kMinQuality = 50;
+const double kDefaultQuality = 100;
 const double kMaxQuality = 100;
 const double kMaxMoreQuality = 2000;
 

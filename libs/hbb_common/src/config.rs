@@ -2476,18 +2476,18 @@ impl UserDefaultConfig {
             #[cfg(any(target_os = "android", target_os = "ios"))]
             keys::OPTION_VIEW_STYLE => self.get_string(key, "adaptive", vec!["original"]),
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
-            keys::OPTION_VIEW_STYLE => self.get_string(key, "original", vec!["adaptive"]),
+            keys::OPTION_VIEW_STYLE => self.get_string(key, "adaptive", vec!["original"]),
             keys::OPTION_SCROLL_STYLE => {
                 self.get_string(key, "scrollauto", vec!["scrolledge", "scrollbar"])
             }
             keys::OPTION_IMAGE_QUALITY => {
-                self.get_string(key, "balanced", vec!["best", "low", "custom"])
+                self.get_string(key, "custom", vec!["best", "low", "balanced"])
             }
             keys::OPTION_CODEC_PREFERENCE => {
                 self.get_string(key, "auto", vec!["vp8", "vp9", "av1", "h264", "h265"])
             }
-            keys::OPTION_CUSTOM_IMAGE_QUALITY => self.get_num_string(key, 50.0, 10.0, 0xFFF as f64),
-            keys::OPTION_CUSTOM_FPS => self.get_num_string(key, 30.0, 5.0, 120.0),
+            keys::OPTION_CUSTOM_IMAGE_QUALITY => self.get_num_string(key, 100.0, 50.0, 0xFFF as f64),
+            keys::OPTION_CUSTOM_FPS => self.get_num_string(key, 60.0, 5.0, 120.0),
             keys::OPTION_ENABLE_FILE_COPY_PASTE => self.get_string(key, "Y", vec!["", "N"]),
             keys::OPTION_EDGE_SCROLL_EDGE_THICKNESS => self.get_num_string(key, 100, 20, 150),
             keys::OPTION_TRACKPAD_SPEED => self.get_num_string(key, 100, 10, 1000),
@@ -2926,9 +2926,10 @@ pub fn option2bool(option: &str, value: &str) -> bool {
         value != "N"
     } else if option.starts_with("allow-")
         || option == "stop-service"
-        || option == keys::OPTION_DIRECT_SERVER
         || option == "force-always-relay"
     {
+        // OPTION_DIRECT_SERVER is deliberately not here: it defaults to on, so ""
+        // must read as true and only an explicit "N" turns it off.
         value == "Y"
     } else {
         value != "N"
@@ -3775,5 +3776,21 @@ mod tests {
         let non_service_root = Config::ipc_path_for_uid(ROOT_UID, "");
         let non_service_user = Config::ipc_path_for_uid(USER_UID, "");
         assert_ne!(non_service_root, non_service_user);
+    }
+
+    #[test]
+    fn test_default_display_options() {
+        let cfg = UserDefaultConfig::default();
+        assert_eq!(cfg.get(keys::OPTION_VIEW_STYLE), "adaptive");
+        assert_eq!(cfg.get(keys::OPTION_IMAGE_QUALITY), "custom");
+        assert_eq!(cfg.get(keys::OPTION_CUSTOM_IMAGE_QUALITY), "100");
+        assert_eq!(cfg.get(keys::OPTION_CUSTOM_FPS), "60");
+    }
+
+    #[test]
+    fn test_direct_server_defaults_to_on() {
+        assert!(option2bool(keys::OPTION_DIRECT_SERVER, ""));
+        assert!(option2bool(keys::OPTION_DIRECT_SERVER, "Y"));
+        assert!(!option2bool(keys::OPTION_DIRECT_SERVER, "N"));
     }
 }

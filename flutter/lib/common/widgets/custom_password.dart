@@ -61,7 +61,8 @@ class MinCharactersValidationRule extends ValidationRule {
   MinCharactersValidationRule(this._numberOfCharacters);
 
   @override
-  String get name => translate('length>=$_numberOfCharacters');
+  String get name =>
+      translate('Requires at least {$_numberOfCharacters} characters');
 
   @override
   bool validate(String value) {

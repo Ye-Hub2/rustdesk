@@ -14,7 +14,10 @@ mod server;
 #[cfg(not(any(target_os = "ios")))]
 pub use self::server::*;
 mod client;
+#[cfg_attr(feature = "lan-only", path = "lan_only/lan.rs")]
 mod lan;
+#[cfg(not(any(target_os = "ios")))]
+mod direct_server;
 #[cfg(not(any(target_os = "ios")))]
 mod rendezvous_mediator;
 #[cfg(not(any(target_os = "ios")))]
@@ -29,9 +32,11 @@ pub mod ipc;
     feature = "flutter"
 )))]
 pub mod ui;
+#[cfg_attr(feature = "lan-only", path = "lan_only/update_metadata.rs")]
 pub(crate) mod update_metadata;
 pub(crate) mod update_hash;
 #[cfg(target_os = "macos")]
+#[cfg_attr(feature = "lan-only", path = "lan_only/manual_update.rs")]
 mod manual_update;
 mod version;
 pub use version::*;
@@ -48,6 +53,7 @@ mod trusted_devices;
 mod clipboard;
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub mod core_main;
+#[cfg_attr(feature = "lan-only", path = "lan_only/custom_server.rs")]
 mod custom_server;
 mod lang;
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -61,12 +67,14 @@ mod tray;
 mod whiteboard;
 
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
+#[cfg_attr(feature = "lan-only", path = "lan_only/updater.rs")]
 mod updater;
 
 mod ui_cm_interface;
 mod ui_interface;
 mod ui_session_interface;
 
+#[cfg_attr(feature = "lan-only", path = "lan_only/hbbs_http/mod.rs")]
 mod hbbs_http;
 
 #[cfg(any(target_os = "windows", target_os = "linux", target_os = "macos"))]
@@ -77,4 +85,5 @@ pub mod privacy_mode;
 #[cfg(windows)]
 pub mod virtual_display_manager;
 
+#[cfg_attr(feature = "lan-only", path = "lan_only/kcp_stream.rs")]
 mod kcp_stream;

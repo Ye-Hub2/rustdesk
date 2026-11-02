@@ -46,6 +46,12 @@ unix-file-copy-paste = [
     "clipboard/unix-file-copy-paste",
 ]
 screencapturekit = ["cpal/screencapturekit"]
+# Opt-in: build without rendezvous signaling, relay, NAT traversal, WebRTC/ICE,
+# update, privacy mode, whiteboard, port forwarding, LAN discovery and API-server
+# sync. What remains is the LAN/IP direct-connect remote desktop: the host listens
+# on `direct-access-port` (default RENDEZVOUS_PORT + 2) and the controller connects
+# straight to the peer IP. Default builds are unaffected.
+lan-only = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

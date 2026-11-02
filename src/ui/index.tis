@@ -133,7 +133,7 @@ class DirectServer: Reactor.Component {
 
     function render() {
         var text = translate("Enable direct IP access");
-        var enabled = handler.get_option("direct-server") == "Y";
+        var enabled = handler.get_option("direct-server") != "N";
         var cls = enabled ? "selected" : "line-through";
         return <li class={cls}><span>{svg_checkmark}</span>{text}{enabled && <EditDirectAccessPort />}</li>;
     }
@@ -143,7 +143,8 @@ class DirectServer: Reactor.Component {
             is_edit_rdp_port = false;
             return;
         }
-        handler.set_option("direct-server", handler.get_option("direct-server") == "Y" ? default_option_no : "Y");
+        var enabled = handler.get_option("direct-server") != "N";
+        handler.set_option("direct-server", enabled ? "N" : "Y");
         this.update();
     }
 }
@@ -1158,8 +1159,8 @@ class PasswordArea: Reactor.Component {
             if (p0.length == 0 && p1.length == 0) {
                 return " ";
             }
-            if (p0.length < 6 && p0.length != 0) {
-                return translate("Too short, at least 6 characters.");
+            if (p0.length < 4 && p0.length != 0) {
+                return translate("Requires at least {4} characters");
             }
             if (p0 != p1) {
                 return translate("The confirmation is not identical.");
