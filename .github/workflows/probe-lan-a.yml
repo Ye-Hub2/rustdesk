@@ -1,0 +1,19 @@
+name: Probe Lan A
+on:
+  workflow_call:
+    inputs:
+      upload-artifact:
+        type: boolean
+        default: true
+      upload-tag:
+        type: string
+        default: "nightly"
+      publish-update-metadata:
+        type: boolean
+        default: false
+
+jobs:
+  echo1:
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo hi
