@@ -1,0 +1,13 @@
+name: Probe Reuse Child
+on:
+  workflow_call:
+    inputs:
+      flag:
+        type: boolean
+        default: false
+
+jobs:
+  child:
+    runs-on: windows-2022
+    steps:
+      - run: echo child
