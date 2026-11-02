@@ -2,7 +2,7 @@ use base::config::keys::OPTION_DIRECT_SERVER;
 use hbb_common::{
     allow_err,
     config::{option2bool, Config, RENDEZVOUS_PORT},
-    log, sleep,
+    log, sleep, tokio,
 };
 
 use crate::server::{ConnectionMeta, ServerPtr};
