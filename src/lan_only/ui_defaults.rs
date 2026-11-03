@@ -20,6 +20,8 @@ pub(crate) fn apply() {
             ("hide-help-cards", "Y"),
             // not in KEYS_BUILDIN_SETTINGS, so only this build reads it
             ("hide-id-board", "Y"),
+            ("hide-p2p-settings", "Y"),
+            ("hide-update-settings", "Y"),
         ],
     );
 }

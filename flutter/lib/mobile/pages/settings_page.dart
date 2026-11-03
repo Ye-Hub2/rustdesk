@@ -392,22 +392,23 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
             })
     ];
     final List<AbstractSettingsTile> shareScreenTiles = [
-      SettingsTile.switchTile(
-        title: Text(translate('Deny LAN discovery')),
-        initialValue: _denyLANDiscovery,
-        onToggle: isOptionFixed(kOptionEnableLanDiscovery)
-            ? null
-            : (v) async {
-                await bind.mainSetOption(
-                    key: kOptionEnableLanDiscovery,
-                    value: bool2option(kOptionEnableLanDiscovery, !v));
-                final newValue = !option2bool(kOptionEnableLanDiscovery,
-                    await bind.mainGetOption(key: kOptionEnableLanDiscovery));
-                setState(() {
-                  _denyLANDiscovery = newValue;
-                });
-              },
-      ),
+      if (!isP2PSettingsHidden())
+        SettingsTile.switchTile(
+          title: Text(translate('Deny LAN discovery')),
+          initialValue: _denyLANDiscovery,
+          onToggle: isOptionFixed(kOptionEnableLanDiscovery)
+              ? null
+              : (v) async {
+                  await bind.mainSetOption(
+                      key: kOptionEnableLanDiscovery,
+                      value: bool2option(kOptionEnableLanDiscovery, !v));
+                  final newValue = !option2bool(kOptionEnableLanDiscovery,
+                      await bind.mainGetOption(key: kOptionEnableLanDiscovery));
+                  setState(() {
+                    _denyLANDiscovery = newValue;
+                  });
+                },
+        ),
       SettingsTile.switchTile(
         title: Row(children: [
           Expanded(child: Text(translate('Use IP Whitelisting'))),
@@ -647,7 +648,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
           gFFI.invokeMethod(AndroidChannel.kSetStartOnBootOpt, toValue);
         }));
 
-    if (!bind.isCustomClient()) {
+    if (!bind.isCustomClient() && !isUpdateSettingsHidden()) {
       enhancementsTiles.add(
         SettingsTile.switchTile(
           initialValue: _checkUpdateOnStartup,
@@ -837,7 +838,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                       });
                     },
             ),
-          if (!incomingOnly)
+          if (!incomingOnly && !isP2PSettingsHidden())
             SettingsTile.switchTile(
               title: Text(translate('Enable TCP hole punching')),
               initialValue: _enableTcpPunch,
@@ -852,7 +853,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                       });
                     },
             ),
-          if (!incomingOnly)
+          if (!incomingOnly && !isP2PSettingsHidden())
             SettingsTile.switchTile(
               title: Text(translate('Enable UDP hole punching')),
               initialValue: _enableUdpPunch,
@@ -867,7 +868,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                       });
                     },
             ),
-          if (!incomingOnly)
+          if (!incomingOnly && !isP2PSettingsHidden())
             SettingsTile.switchTile(
               title: Text(translate('Enable IPv6 P2P connection')),
               initialValue: _enableIpv6Punch,
@@ -882,7 +883,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                       });
                     },
             ),
-          if (!incomingOnly)
+          if (!incomingOnly && !isP2PSettingsHidden())
             SettingsTile.switchTile(
               title: Text(translate('Enable WebRTC P2P connection')),
               initialValue: _enableWebrtc,

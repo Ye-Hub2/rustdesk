@@ -524,8 +524,12 @@ class _GeneralState extends State<_General> {
   Widget other() {
     final incomingOnly = bind.isIncomingOnly();
     final outgoingOnly = bind.isOutgoingOnly();
-    final showAutoUpdate = (isWindows && bind.mainIsInstalled()) ||
-    (isMacOS && bind.mainIsInstalled() && bind.mainIsInstalledDaemon(prompt: false) && !bind.isCustomClient());
+    final showAutoUpdate = ((isWindows && bind.mainIsInstalled()) ||
+            (isMacOS &&
+                bind.mainIsInstalled() &&
+                bind.mainIsInstalledDaemon(prompt: false) &&
+                !bind.isCustomClient())) &&
+        !isUpdateSettingsHidden();
     final children = <Widget>[
       if (!isWeb && !incomingOnly)
         _OptionCheckBox(context, 'Confirm before closing multiple tabs',
@@ -593,7 +597,7 @@ class _GeneralState extends State<_General> {
             ),
           ),
       ],
-      if (!isWeb && !bind.isCustomClient())
+      if (!isWeb && !bind.isCustomClient() && !isUpdateSettingsHidden())
         _OptionCheckBox(
           context,
           'Check for software update on startup',
@@ -613,7 +617,7 @@ class _GeneralState extends State<_General> {
           'Capture screen using DirectX',
           kOptionDirectxCapture,
         ),
-      if (!isWeb && !incomingOnly) ...[
+      if (!isWeb && !incomingOnly && !isP2PSettingsHidden()) ...[
         _OptionCheckBox(
           context,
           'Enable TCP hole punching',
@@ -633,7 +637,8 @@ class _GeneralState extends State<_General> {
           isServer: false,
         ),
       ],
-      if (!incomingOnly) ...webrtcOptions(context),
+      if (!incomingOnly && !isP2PSettingsHidden())
+        ...webrtcOptions(context),
       if (!isWeb && !incomingOnly)
         Tooltip(
           message: translate('sync-clipboard-between-sessions-tip'),
@@ -1455,8 +1460,9 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
     bool enabled = !locked;
     return _Card(title: 'Security', children: [
       shareRdp(context, enabled),
-      _OptionCheckBox(context, 'Deny LAN discovery', 'enable-lan-discovery',
-          reverse: true, enabled: enabled),
+      if (!isP2PSettingsHidden())
+        _OptionCheckBox(context, 'Deny LAN discovery', 'enable-lan-discovery',
+            reverse: true, enabled: enabled),
       ...directIp(context),
       whitelist(),
       idWhitelist(),

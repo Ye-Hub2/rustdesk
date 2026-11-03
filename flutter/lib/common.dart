@@ -3983,6 +3983,12 @@ bool isUnlockPinDisabled() =>
 bool isIdBoardHidden() =>
     bind.mainGetBuildinOption(key: kOptionHideIdBoard) == 'Y';
 
+bool isP2PSettingsHidden() =>
+    bind.mainGetBuildinOption(key: kOptionHideP2PSettings) == 'Y';
+
+bool isUpdateSettingsHidden() =>
+    bind.mainGetBuildinOption(key: kOptionHideUpdateSettings) == 'Y';
+
 bool? _isCustomClient;
 bool get isCustomClient {
   _isCustomClient ??= bind.isCustomClient();

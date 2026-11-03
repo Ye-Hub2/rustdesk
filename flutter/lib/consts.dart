@@ -218,6 +218,8 @@ const String kOptionDisableUnlockPin = "disable-unlock-pin";
 const kHideUsernameOnCard = "hide-username-on-card";
 const String kOptionHideHelpCards = "hide-help-cards";
 const String kOptionHideIdBoard = "hide-id-board";
+const String kOptionHideP2PSettings = "hide-p2p-settings";
+const String kOptionHideUpdateSettings = "hide-update-settings";
 const String kOptionAllowDeepLinkPassword = "allow-deep-link-password";
 const String kOptionAllowDeepLinkServerSettings =
     "allow-deep-link-server-settings";

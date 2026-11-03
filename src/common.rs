@@ -1044,6 +1044,10 @@ pub fn is_modifier(evt: &KeyEvent) -> bool {
 }
 
 pub fn check_software_update() {
+    // lan-only builds carry no updater, so nothing would ever consume the result.
+    if cfg!(feature = "lan-only") {
+        return;
+    }
     if is_custom_client() {
         return;
     }
