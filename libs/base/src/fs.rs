@@ -1056,7 +1056,7 @@ impl TransferJob {
             }
             DataSource::MemoryCursor(..) => "",
         };
-        const BUF_SIZE: usize = 128 * 1024;
+        const BUF_SIZE: usize = 1024 * 1024;
         let mut buf: Vec<u8> = vec![0; BUF_SIZE];
         let mut compressed = false;
         let mut offset: usize = 0;

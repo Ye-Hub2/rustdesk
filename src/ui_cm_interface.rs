@@ -488,7 +488,7 @@ impl<T: InvokeUiCM> IpcTaskRunner<T> {
         use hbb_common::config::LocalConfig;
         use hbb_common::tokio::time::{self, Duration, Instant};
 
-        const MILLI5: Duration = Duration::from_millis(5);
+        const MILLI1: Duration = Duration::from_millis(1);
         const SEC30: Duration = Duration::from_secs(30);
 
         // for tmp use, without real conn id
@@ -617,7 +617,7 @@ impl<T: InvokeUiCM> IpcTaskRunner<T> {
                                     // This ensures new jobs start processing without waiting for the slow 30s timer.
                                     // Deactivation (back to 30s) happens in tick handler when jobs are exhausted.
                                     if !self.read_jobs.is_empty() {
-                                        file_timer = crate::rustdesk_interval(time::interval(MILLI5));
+                                        file_timer = crate::rustdesk_interval(time::interval(MILLI1));
                                     }
                                     let log = fs::serialize_transfer_jobs(&write_jobs);
                                     self.cm.ui_handler.file_transfer_log("transfer", &log);
